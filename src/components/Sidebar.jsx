@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
     LayoutDashboard,
     FileText,
@@ -7,14 +8,21 @@ import {
     Settings,
     UserCheck,
     Activity,
-            MessageSquare,
+    MessageSquare,
     LogOut,
     X,
-    GraduationCap
+    GraduationCap,
+    Globe,
+    Tag,
+    LayoutGrid,
+    ChevronDown,
+    ChevronRight,
+    Library
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, onClose }) {
     const location = useLocation();
+    const [isAdminOpen, setIsAdminOpen] = useState(false);
 
     const navItems = [
         { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -23,10 +31,28 @@ export default function Sidebar({ onLogout, onClose }) {
         { path: '/activity-logs', icon: Activity, label: 'Activity Logs' },
         { path: '/complaints', icon: MessageSquare, label: 'Complaints' },
         { path: '/admin/training-apps', icon: GraduationCap, label: 'Training Apps' },
+        {
+            label: 'Master Management',
+            icon: Library,
+            isDropdown: true,
+            children: [
+                { path: '/admin/countries', icon: Globe, label: 'Countries' },
+                { path: '/admin/categories', icon: Tag, label: 'Categories' },
+                { path: '/admin/apps', icon: LayoutGrid, label: 'Apps' },
+            ]
+        },
         { path: '/payment-requests', icon: CreditCard, label: 'Payment Requests' },
         { path: '/users', icon: Users, label: 'Users' },
         { path: '/settings', icon: Settings, label: 'Settings' }
     ];
+
+    // Auto-expand dropdown if a child route is active
+    useEffect(() => {
+        const adminRoutes = ['/admin/countries', '/admin/categories', '/admin/apps'];
+        if (adminRoutes.some(route => location.pathname.startsWith(route))) {
+            setIsAdminOpen(true);
+        }
+    }, [location.pathname]);
 
     const handleLogout = () => {
         onLogout();
@@ -53,8 +79,55 @@ export default function Sidebar({ onLogout, onClose }) {
 
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                {navItems.map((item) => {
+                {navItems.map((item, index) => {
                     const Icon = item.icon;
+
+                    if (item.isDropdown) {
+                        const isAnyChildActive = item.children.some(child => location.pathname === child.path);
+
+                        return (
+                            <div key={index} className="space-y-1">
+                                <button
+                                    onClick={() => setIsAdminOpen(!isAdminOpen)}
+                                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${isAnyChildActive
+                                        ? 'bg-blue-50 text-blue-700 font-medium'
+                                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Icon className={`w-5 h-5 ${isAnyChildActive ? 'text-blue-700' : 'text-gray-500'}`} />
+                                        <span>{item.label}</span>
+                                    </div>
+                                    {isAdminOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                </button>
+
+                                {isAdminOpen && (
+                                    <div className="pl-4 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                        {item.children.map((child) => {
+                                            const ChildIcon = child.icon;
+                                            const isChildActive = location.pathname === child.path;
+
+                                            return (
+                                                <Link
+                                                    key={child.path}
+                                                    to={child.path}
+                                                    onClick={onClose}
+                                                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${isChildActive
+                                                        ? 'bg-blue-100 text-blue-800 font-bold'
+                                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                                        }`}
+                                                >
+                                                    <ChildIcon className={`w-4 h-4 ${isChildActive ? 'text-blue-800' : 'text-gray-400'}`} />
+                                                    <span className="text-sm">{child.label}</span>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
                     const isActive = location.pathname === item.path ||
                         (item.path === '/admin/training-apps' && location.pathname.startsWith('/admin/training-apps'));
 
@@ -62,7 +135,7 @@ export default function Sidebar({ onLogout, onClose }) {
                         <Link
                             key={item.path}
                             to={item.path}
-                            onClick={onClose} // Close sidebar on mobile when navigating
+                            onClick={onClose}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 cursor-pointer ${isActive
                                 ? 'bg-blue-50 text-blue-700 font-medium'
                                 : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'

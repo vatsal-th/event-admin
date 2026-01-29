@@ -16,6 +16,9 @@ import Complaints from './pages/Complaints';
 import ComplaintDetails from './pages/ComplaintDetails';
 import TrainingApps from './pages/TrainingApps';
 import TrainingVideos from './pages/TrainingVideos';
+import CountryManagement from './pages/CountryManagement';
+import CategoryManagement from './pages/CategoryManagement';
+import AppManagement from './pages/AppManagement';
 import Login from './pages/Login';
 import { setCredentials, logout, selectIsAuthenticated } from './store/slices/authSlice';
 import './App.css';
@@ -56,6 +59,9 @@ function App() {
               <Route path="/complaints/:id" element={<ComplaintDetails />} />
               <Route path="/admin/training-apps" element={<TrainingApps />} />
               <Route path="/admin/training-apps/:appId/videos" element={<TrainingVideos />} />
+              <Route path="/admin/countries" element={<CountryManagement />} />
+              <Route path="/admin/categories" element={<CategoryManagement />} />
+              <Route path="/admin/apps" element={<AppManagement />} />
               <Route path="/payment-requests" element={<PaymentRequests />} />
               <Route path="/users" element={<Users />} />
               <Route path="/settings" element={<Settings />} />
