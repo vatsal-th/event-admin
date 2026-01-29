@@ -14,6 +14,8 @@ import Employees from './pages/Employees';
 import ActivityLogs from './pages/ActivityLogs';
 import Complaints from './pages/Complaints';
 import ComplaintDetails from './pages/ComplaintDetails';
+import TrainingApps from './pages/TrainingApps';
+import TrainingVideos from './pages/TrainingVideos';
 import Login from './pages/Login';
 import { setCredentials, logout, selectIsAuthenticated } from './store/slices/authSlice';
 import './App.css';
@@ -52,6 +54,8 @@ function App() {
               <Route path="/activity-logs" element={<ActivityLogs />} />
               <Route path="/complaints" element={<Complaints />} />
               <Route path="/complaints/:id" element={<ComplaintDetails />} />
+              <Route path="/admin/training-apps" element={<TrainingApps />} />
+              <Route path="/admin/training-apps/:appId/videos" element={<TrainingVideos />} />
               <Route path="/payment-requests" element={<PaymentRequests />} />
               <Route path="/users" element={<Users />} />
               <Route path="/settings" element={<Settings />} />

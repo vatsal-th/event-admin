@@ -7,9 +7,10 @@ import {
     Settings,
     UserCheck,
     Activity,
-    MessageSquare,
+            MessageSquare,
     LogOut,
-    X
+    X,
+    GraduationCap
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, onClose }) {
@@ -21,6 +22,7 @@ export default function Sidebar({ onLogout, onClose }) {
         { path: '/employees', icon: UserCheck, label: 'Employees' },
         { path: '/activity-logs', icon: Activity, label: 'Activity Logs' },
         { path: '/complaints', icon: MessageSquare, label: 'Complaints' },
+        { path: '/admin/training-apps', icon: GraduationCap, label: 'Training Apps' },
         { path: '/payment-requests', icon: CreditCard, label: 'Payment Requests' },
         { path: '/users', icon: Users, label: 'Users' },
         { path: '/settings', icon: Settings, label: 'Settings' }
@@ -53,7 +55,8 @@ export default function Sidebar({ onLogout, onClose }) {
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                 {navItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
+                    const isActive = location.pathname === item.path ||
+                        (item.path === '/admin/training-apps' && location.pathname.startsWith('/admin/training-apps'));
 
                     return (
                         <Link
