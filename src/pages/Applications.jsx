@@ -120,7 +120,7 @@ export default function Applications() {
             case 'influencer': return influencerApps;
             default: return mockApplications.filter(app => app.category === activeTab);
         }
-    }, [activeTab, hostingApps, eventApps, agencyApps]);
+    }, [activeTab, hostingApps, eventApps, agencyApps, influencerApps]);
 
     const isLoading = useMemo(() => {
         switch (activeTab) {
@@ -130,7 +130,7 @@ export default function Applications() {
             case 'influencer': return influencerLoading;
             default: return false;
         }
-    }, [activeTab, hostingLoading, eventLoading, agencyLoading]);
+    }, [activeTab, hostingLoading, eventLoading, agencyLoading, influencerLoading]);
 
     const columns = useMemo(() => {
         if (activeTab === 'event-hosting') {
