@@ -3,7 +3,7 @@ export default function Table({ columns, data, onRowAction }) {
         <>
             {/* Mobile Card View */}
             <div className="block md:hidden space-y-4">
-                {data.length === 0 ? (
+                {!Array.isArray(data) || data.length === 0 ? (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
                         No data available
                     </div>
@@ -43,7 +43,7 @@ export default function Table({ columns, data, onRowAction }) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {data.length === 0 ? (
+                        {!Array.isArray(data) || data.length === 0 ? (
                             <tr>
                                 <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500">
                                     No data available

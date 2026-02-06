@@ -17,7 +17,8 @@ import {
     LayoutGrid,
     ChevronDown,
     ChevronRight,
-    Library
+    Library,
+    Landmark
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, onClose }) {
@@ -41,7 +42,8 @@ export default function Sidebar({ onLogout, onClose }) {
                 { path: '/admin/apps', icon: LayoutGrid, label: 'Apps' },
             ]
         },
-        { path: '/payment-requests', icon: CreditCard, label: 'Payment Requests' },
+        { path: '/bank-details', icon: Landmark, label: 'Bank Verification' },
+        { path: '/payment-requests', icon: CreditCard, label: 'Withdrawal Requests' },
         { path: '/users', icon: Users, label: 'Users' },
         { path: '/settings', icon: Settings, label: 'Settings' }
     ];

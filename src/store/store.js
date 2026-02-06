@@ -9,6 +9,8 @@ import hostingApplicationReducer from './slices/hostingApplicationSlice';
 import eventApplicationReducer from './slices/eventApplicationSlice';
 import agencyApplicationReducer from './slices/agencyApplicationSlice';
 import influencerApplicationReducer from './slices/influencerApplicationSlice';
+import bankDetailReducer from './slices/bankDetailSlice';
+import withdrawalReducer from './slices/withdrawalSlice';
 
 export const store = configureStore({
     reducer: {
@@ -22,6 +24,8 @@ export const store = configureStore({
         eventApplications: eventApplicationReducer,
         agencyApplications: agencyApplicationReducer,
         influencerApplications: influencerApplicationReducer,
+        bankDetails: bankDetailReducer,
+        withdrawals: withdrawalReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

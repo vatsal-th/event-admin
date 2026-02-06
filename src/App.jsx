@@ -19,6 +19,7 @@ import TrainingVideos from './pages/TrainingVideos';
 import CountryManagement from './pages/CountryManagement';
 import CategoryManagement from './pages/CategoryManagement';
 import AppManagement from './pages/AppManagement';
+import BankDetails from './pages/BankDetails';
 import Login from './pages/Login';
 import { setCredentials, logout, selectIsAuthenticated } from './store/slices/authSlice';
 import './App.css';
@@ -62,6 +63,7 @@ function App() {
               <Route path="/admin/countries" element={<CountryManagement />} />
               <Route path="/admin/categories" element={<CategoryManagement />} />
               <Route path="/admin/apps" element={<AppManagement />} />
+              <Route path="/bank-details" element={<BankDetails />} />
               <Route path="/payment-requests" element={<PaymentRequests />} />
               <Route path="/users" element={<Users />} />
               <Route path="/settings" element={<Settings />} />
