@@ -276,7 +276,7 @@ const Complaints = () => {
                                                         e.stopPropagation();
                                                         handleOpen(c);
                                                     }}
-                                                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                                                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity cursor-pointer"
                                                 >
                                                     Resolve
                                                 </button>
@@ -344,7 +344,7 @@ const Complaints = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={handleClose}
-                                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors"
+                                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors cursor-pointer"
                             >
                                 Cancel
                             </button>

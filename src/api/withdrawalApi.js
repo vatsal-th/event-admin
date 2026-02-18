@@ -28,6 +28,25 @@ export const withdrawalApi = {
             reason
         });
         return response.data;
+    },
+
+    /**
+     * Get withdrawal history for admin with filters
+     * @param {string} status - Optional status filter (pending, approved, rejected)
+     */
+    getWithdrawalHistory: async (status) => {
+        const response = await axiosInstance.get('/api/withdrawals/admin/all', {
+            params: { status }
+        });
+        return response.data;
+    },
+
+    /**
+     * Get withdrawal stats summary for admin
+     */
+    getWithdrawalStats: async () => {
+        const response = await axiosInstance.get('/api/withdrawals/admin/stats/summary');
+        return response.data;
     }
 };
 

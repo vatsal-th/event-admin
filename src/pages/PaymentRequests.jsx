@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Eye, Loader2, User, Clock, Wallet } from 'lucide-react';
+import { Eye, Loader2, User, Clock, Wallet, CheckCircle2, XCircle } from 'lucide-react';
 import { fetchWithdrawals, approveWithdrawalRequest, rejectWithdrawalRequest } from '../store/slices/withdrawalSlice';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
 import toast from 'react-hot-toast';
 
+import { useNavigate } from 'react-router-dom';
+
 export default function PaymentRequests() {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { items, isLoading, isProcessing } = useSelector((state) => state.withdrawals);
 
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -128,9 +131,18 @@ export default function PaymentRequests() {
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
-            <div className="mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Withdrawal Requests</h1>
-                <p className="text-gray-600 mt-2">Review and process user withdrawal requests</p>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Withdrawal Requests</h1>
+                    <p className="text-gray-600 mt-2">Review and process user withdrawal requests</p>
+                </div>
+                <button
+                    onClick={() => navigate('/payment-requests/history')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors text-gray-700 font-medium cursor-pointer"
+                >
+                    <Clock className="w-5 h-5 text-gray-500" />
+                    History
+                </button>
             </div>
 
             {/* Table */}
@@ -209,20 +221,24 @@ export default function PaymentRequests() {
                                 <button
                                     onClick={handleReject}
                                     disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                                    className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-2xl hover:bg-red-100 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer border border-red-100"
                                 >
+                                    <XCircle size={20} />
                                     {showRejectInput ? 'Confirm Rejection' : 'Reject Withdrawal'}
                                 </button>
                                 {!showRejectInput && (
                                     <button
                                         onClick={handleApprove}
                                         disabled={isProcessing}
-                                        className="flex-1 px-6 py-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 disabled:opacity-50 cursor-pointer"
+                                        className="flex-1 px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-2xl hover:shadow-lg hover:shadow-emerald-200 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                                     >
                                         {isProcessing ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
-                                            'Approve Withdrawal'
+                                            <>
+                                                <CheckCircle2 size={20} />
+                                                Approve Withdrawal
+                                            </>
                                         )}
                                     </button>
                                 )}

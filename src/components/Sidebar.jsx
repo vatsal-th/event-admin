@@ -18,7 +18,9 @@ import {
     ChevronDown,
     ChevronRight,
     Library,
-    Landmark
+    Landmark,
+    Wallet,
+    Banknote
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, onClose }) {
@@ -44,6 +46,8 @@ export default function Sidebar({ onLogout, onClose }) {
         },
         { path: '/bank-details', icon: Landmark, label: 'Bank Verification' },
         { path: '/payment-requests', icon: CreditCard, label: 'Withdrawal Requests' },
+        { path: '/admin/wallet', icon: Wallet, label: 'Admin Wallet' },
+        { path: '/salary-management', icon: Banknote, label: 'Salary Management' },
         { path: '/users', icon: Users, label: 'Users' },
         { path: '/settings', icon: Settings, label: 'Settings' }
     ];
@@ -67,7 +71,7 @@ export default function Sidebar({ onLogout, onClose }) {
                 <h1 className="text-xl font-bold text-gray-900">Event Admin</h1>
                 <button
                     onClick={onClose}
-                    className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                    className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
                 >
                     <X className="w-5 h-5" />
                 </button>

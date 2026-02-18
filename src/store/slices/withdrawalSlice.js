@@ -45,10 +45,41 @@ export const rejectWithdrawalRequest = createAsyncThunk(
     }
 );
 
+export const fetchWithdrawalHistory = createAsyncThunk(
+    'withdrawals/fetchHistory',
+    async (status, { rejectWithValue }) => {
+        try {
+            const data = await withdrawalApi.getWithdrawalHistory(status);
+            return data.data?.withdrawals || data.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch withdrawal history');
+        }
+    }
+);
+
+export const fetchWithdrawalStats = createAsyncThunk(
+    'withdrawals/fetchStats',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await withdrawalApi.getWithdrawalStats();
+            return data.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch withdrawal stats');
+        }
+    }
+);
+
 const withdrawalSlice = createSlice({
     name: 'withdrawals',
     initialState: {
         items: [],
+        historyItems: [],
+        stats: {
+            pendingCount: 0,
+            approvedCount: 0,
+            rejectedCount: 0,
+            totalPoints: 0
+        },
         isLoading: false,
         error: null,
         isProcessing: false,
@@ -69,6 +100,32 @@ const withdrawalSlice = createSlice({
                 state.isLoading = false;
                 state.error = action.payload;
             })
+            // Fetch History
+            .addCase(fetchWithdrawalHistory.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchWithdrawalHistory.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.historyItems = Array.isArray(action.payload) ? action.payload : [];
+            })
+            .addCase(fetchWithdrawalHistory.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+            // Fetch Stats
+            .addCase(fetchWithdrawalStats.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchWithdrawalStats.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.stats = action.payload;
+            })
+            .addCase(fetchWithdrawalStats.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
             // Approve
             .addCase(approveWithdrawalRequest.pending, (state) => {
                 state.isProcessing = true;
@@ -78,6 +135,10 @@ const withdrawalSlice = createSlice({
                 const index = state.items.findIndex(item => item._id === action.payload._id);
                 if (index !== -1) {
                     state.items[index] = action.payload;
+                }
+                const historyIndex = state.historyItems.findIndex(item => item._id === action.payload._id);
+                if (historyIndex !== -1) {
+                    state.historyItems[historyIndex] = action.payload;
                 }
             })
             .addCase(approveWithdrawalRequest.rejected, (state) => {
@@ -92,6 +153,10 @@ const withdrawalSlice = createSlice({
                 const index = state.items.findIndex(item => item._id === action.payload._id);
                 if (index !== -1) {
                     state.items[index] = action.payload;
+                }
+                const historyIndex = state.historyItems.findIndex(item => item._id === action.payload._id);
+                if (historyIndex !== -1) {
+                    state.historyItems[historyIndex] = action.payload;
                 }
             })
             .addCase(rejectWithdrawalRequest.rejected, (state) => {

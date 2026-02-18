@@ -5,6 +5,8 @@ import { fetchHostingApplications, updateHostingApplicationStatus, clearMessages
 import { fetchEventApplications, updateEventApplicationStatus, clearMessages as clearEventMessages } from '../store/slices/eventApplicationSlice';
 import { fetchAgencyApplications, updateAgencyApplicationStatus, clearMessages as clearAgencyMessages } from '../store/slices/agencyApplicationSlice';
 import { fetchInfluencerApplications, updateInfluencerApplicationStatus, clearMessages as clearInfluencerMessages } from '../store/slices/influencerApplicationSlice';
+import { fetchAllTopups, updateTopupStatusAction, fetchAdminProfile, clearError as clearTopupError } from '../store/slices/topupSlice';
+import { IndianRupee, Target, RefreshCw, AlertCircle, Zap, LayoutGrid } from 'lucide-react';
 import { mockApplications } from '../data/mockData';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
@@ -17,6 +19,7 @@ export default function Applications() {
     const { applications: eventApps, loading: eventLoading, error: eventError, success: eventSuccess } = useSelector((state) => state.eventApplications);
     const { applications: agencyApps, loading: agencyLoading, error: agencyError, success: agencySuccess } = useSelector((state) => state.agencyApplications);
     const { applications: influencerApps, loading: influencerLoading, error: influencerError, success: influencerSuccess } = useSelector((state) => state.influencerApplications);
+    const { items: topupApps, adminProfile, loading: topupLoading, processing: topupProcessing, error: topupError } = useSelector((state) => state.topups);
 
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,7 +30,8 @@ export default function Applications() {
         { id: 'event-hosting', label: 'Event Hosting' },
         { id: 'apply-event', label: 'Apply Event' },
         { id: 'agency', label: 'Agency' },
-        { id: 'influencer', label: 'Influencer' }
+        { id: 'influencer', label: 'Influencer' },
+        { id: 'top-up', label: 'Top-Up' }
     ];
 
     useEffect(() => {
@@ -39,6 +43,9 @@ export default function Applications() {
             dispatch(fetchAgencyApplications());
         } else if (activeTab === 'influencer') {
             dispatch(fetchInfluencerApplications());
+        } else if (activeTab === 'top-up') {
+            dispatch(fetchAllTopups());
+            dispatch(fetchAdminProfile());
         }
     }, [dispatch, activeTab]);
 
@@ -84,7 +91,11 @@ export default function Applications() {
             toast.success(influencerSuccess);
             dispatch(clearInfluencerMessages());
         }
-    }, [influencerError, influencerSuccess, dispatch]);
+        if (topupError) {
+            toast.error(topupError);
+            dispatch(clearTopupError());
+        }
+    }, [influencerError, influencerSuccess, topupError, dispatch]);
 
     const handleViewDetails = (application) => {
         setSelectedApplication(application);
@@ -102,6 +113,9 @@ export default function Applications() {
                 await dispatch(updateAgencyApplicationStatus({ id, status })).unwrap();
             } else if (activeTab === 'influencer') {
                 await dispatch(updateInfluencerApplicationStatus({ id, status })).unwrap();
+            } else if (activeTab === 'top-up') {
+                await dispatch(updateTopupStatusAction({ id, status })).unwrap();
+                dispatch(fetchAdminProfile()); // Refresh balance after top-up
             }
             setIsModalOpen(false);
             setSelectedApplication(null);
@@ -118,9 +132,10 @@ export default function Applications() {
             case 'apply-event': return eventApps;
             case 'agency': return agencyApps;
             case 'influencer': return influencerApps;
+            case 'top-up': return topupApps;
             default: return mockApplications.filter(app => app.category === activeTab);
         }
-    }, [activeTab, hostingApps, eventApps, agencyApps, influencerApps]);
+    }, [activeTab, hostingApps, eventApps, agencyApps, influencerApps, topupApps]);
 
     const isLoading = useMemo(() => {
         switch (activeTab) {
@@ -128,9 +143,10 @@ export default function Applications() {
             case 'apply-event': return eventLoading;
             case 'agency': return agencyLoading;
             case 'influencer': return influencerLoading;
+            case 'top-up': return topupLoading;
             default: return false;
         }
-    }, [activeTab, hostingLoading, eventLoading, agencyLoading, influencerLoading]);
+    }, [activeTab, hostingLoading, eventLoading, agencyLoading, influencerLoading, topupLoading]);
 
     const columns = useMemo(() => {
         if (activeTab === 'event-hosting') {
@@ -355,6 +371,79 @@ export default function Applications() {
             ];
         }
 
+        if (activeTab === 'top-up') {
+            return [
+                {
+                    header: 'Agent Name',
+                    render: (row) => (
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                {row.userId?.fullName?.charAt(0) || <User className="w-5 h-5" />}
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-900">{row.userId?.fullName || 'N/A'}</p>
+                                <p className="text-xs text-gray-500">ID: {row.userId?._id?.substring(0, 8)}...</p>
+                            </div>
+                        </div>
+                    )
+                },
+                {
+                    header: 'App Name',
+                    render: (row) => (
+                        <div className="flex items-center gap-2">
+                            <LayoutGrid className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium text-gray-700">{row.appId?.appName || 'N/A'}</span>
+                        </div>
+                    )
+                },
+                {
+                    header: 'Target Details',
+                    render: (row) => (
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                                <Target className="w-3.5 h-3.5 text-blue-500" />
+                                {row.targetName || 'N/A'}
+                            </div>
+                            <span className="text-xs text-gray-500">UID: {row.targetUserId || 'N/A'}</span>
+                        </div>
+                    )
+                },
+                {
+                    header: 'Amount',
+                    render: (row) => (
+                        <div className="flex items-center gap-1 font-bold text-gray-900">
+                            <IndianRupee size={14} className="text-gray-400" />
+                            {row.amount?.toLocaleString()}
+                        </div>
+                    )
+                },
+                {
+                    header: 'Date',
+                    render: (row) => (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar size={14} className="text-gray-400" />
+                            {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}
+                        </div>
+                    )
+                },
+                {
+                    header: 'Status',
+                    render: (row) => <Badge status={row.status.toLowerCase()} />
+                },
+                {
+                    header: 'Action',
+                    render: (row) => (
+                        <button
+                            onClick={() => handleViewDetails(row)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors p-2 hover:bg-blue-50 rounded-lg cursor-pointer"
+                        >
+                            <Eye className="w-5 h-5" />
+                        </button>
+                    )
+                }
+            ];
+        }
+
         // Default columns for other categories (using mock data structure)
         return [
             {
@@ -399,9 +488,11 @@ export default function Applications() {
 
     return (
         <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Applications Management</h1>
-                <p className="text-gray-600 mt-2">Review and manage user applications across different categories</p>
+            <div className="mb-8 flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Applications Management</h1>
+                    <p className="text-gray-600 mt-2">Review and manage user applications across different categories</p>
+                </div>
             </div>
 
             {/* Tabs */}
@@ -669,6 +760,51 @@ export default function Applications() {
                                     </div>
                                 </div>
                             </>
+                        ) : activeTab === 'top-up' ? (
+                            /* Top-Up Application View (Real Data) */
+                            <>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-6 border-b border-gray-200">
+                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-blue-100">
+                                        {selectedApplication.userId?.fullName?.charAt(0) || <Zap size={32} />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-2xl font-bold text-gray-900">{selectedApplication.userId?.fullName || 'N/A'}</h3>
+                                        <div className="flex flex-wrap items-center gap-3 mt-2">
+                                            <Badge status={selectedApplication.status.toLowerCase()} />
+                                            <span className="text-sm text-gray-500 font-medium">Agent ID: {selectedApplication.userId?._id}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Request Details</p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-500 flex items-center gap-2"><LayoutGrid size={16} /> Target App</span>
+                                                <span className="text-sm font-bold text-gray-900">{selectedApplication.appId?.appName || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-500 flex items-center gap-2"><IndianRupee size={16} /> Amount</span>
+                                                <span className="text-sm font-bold text-blue-600">₹{selectedApplication.amount?.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Target Info</p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-500 flex items-center gap-2"><Target size={16} /> Target Name</span>
+                                                <span className="text-sm font-bold text-gray-900">{selectedApplication.targetName || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-500 flex items-center gap-2"><Fingerprint size={16} /> Target ID</span>
+                                                <span className="text-sm font-bold text-gray-900">{selectedApplication.targetUserId || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         ) : (
                             /* Placeholder for other categories */
                             <div className="space-y-6">
@@ -692,7 +828,7 @@ export default function Applications() {
                         )}
 
                         {/* Actions for Real API Data */}
-                        {(activeTab === 'event-hosting' || activeTab === 'apply-event' || activeTab === 'agency' || activeTab === 'influencer') && selectedApplication.status.toLowerCase() === 'pending' && (
+                        {(activeTab === 'event-hosting' || activeTab === 'apply-event' || activeTab === 'agency' || activeTab === 'influencer' || activeTab === 'top-up') && selectedApplication.status.toLowerCase() === 'pending' && (
                             <div className="flex gap-4 pt-6 border-t border-gray-100">
                                 <button
                                     onClick={() => handleStatusUpdate(selectedApplication._id, 'Rejected')}

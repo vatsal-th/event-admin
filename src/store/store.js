@@ -11,6 +11,10 @@ import agencyApplicationReducer from './slices/agencyApplicationSlice';
 import influencerApplicationReducer from './slices/influencerApplicationSlice';
 import bankDetailReducer from './slices/bankDetailSlice';
 import withdrawalReducer from './slices/withdrawalSlice';
+import walletReducer from './slices/walletSlice';
+
+import topupReducer from './slices/topupSlice';
+import salaryReducer from './slices/salarySlice';
 
 export const store = configureStore({
     reducer: {
@@ -26,6 +30,9 @@ export const store = configureStore({
         influencerApplications: influencerApplicationReducer,
         bankDetails: bankDetailReducer,
         withdrawals: withdrawalReducer,
+        wallet: walletReducer,
+        topups: topupReducer,
+        salary: salaryReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
