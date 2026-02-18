@@ -11,9 +11,15 @@ import {
     User,
     Loader2,
     X,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    Filter
 } from 'lucide-react';
 import { fetchComplaints, resolveComplaintAction, clearError } from '../store/slices/complaintSlice';
 import toast from 'react-hot-toast';
+import Pagination from '../components/Pagination';
+import FilterDropdown from '../components/FilterDropdown';
 
 const Complaints = () => {
     const dispatch = useDispatch();
@@ -25,6 +31,12 @@ const Complaints = () => {
     const [resolutionNote, setResolutionNote] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         dispatch(fetchComplaints());
@@ -47,9 +59,38 @@ const Complaints = () => {
 
             const matchesStatus = statusFilter === 'all' || c.status?.toLowerCase() === statusFilter.toLowerCase();
 
-            return matchesSearch && matchesStatus;
+            // Date range filter
+            let matchesDate = true;
+            if (startDate || endDate) {
+                const itemDate = new Date(c.createdAt);
+                itemDate.setHours(0, 0, 0, 0);
+
+                if (startDate) {
+                    const start = new Date(startDate);
+                    start.setHours(0, 0, 0, 0);
+                    if (itemDate < start) matchesDate = false;
+                }
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(0, 0, 0, 0);
+                    if (itemDate > end) matchesDate = false;
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesDate;
         });
-    }, [complaints, searchQuery, statusFilter]);
+    }, [complaints, searchQuery, statusFilter, startDate, endDate]);
+
+    const paginatedComplaints = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredComplaints.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredComplaints, currentPage]);
+
+    const totalPages = Math.ceil(filteredComplaints.length / itemsPerPage);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, startDate, endDate]);
 
     const stats = useMemo(() => ({
         total: complaints.length,
@@ -163,21 +204,63 @@ const Complaints = () => {
                             />
                         </div>
 
-                        {/* Filter Buttons */}
-                        <div className="flex gap-2">
-                            {['all', 'pending', 'resolved'].map((status) => (
-                                <button
-                                    key={status}
-                                    onClick={() => setStatusFilter(status)}
-                                    className={`flex-1 px-4 py-3 rounded-xl font-semibold capitalize transition-all cursor-pointer ${statusFilter === status
-                                        ? 'bg-gray-900 text-white shadow-lg'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    {status}
-                                </button>
-                            ))}
+                        {/* Filter Section */}
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <FilterDropdown
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                                options={[
+                                    { value: 'all', label: 'All Status' },
+                                    { value: 'pending', label: 'Pending' },
+                                    { value: 'resolved', label: 'Resolved' }
+                                ]}
+                                className="min-w-[160px]"
+                            />
+
+                            <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-1.5 border border-gray-200">
+                                <Calendar size={16} className="text-gray-400" />
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="bg-transparent border-0 p-1 text-xs font-semibold text-gray-700 outline-none focus:ring-0"
+                                />
+                                <span className="text-gray-400">to</span>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="bg-transparent border-0 p-1 text-xs font-semibold text-gray-700 outline-none focus:ring-0"
+                                />
+                                {(startDate || endDate) && (
+                                    <button 
+                                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-4 text-xs">
+                        <div className="text-gray-500">
+                            Showing <span className="font-bold text-gray-900">{filteredComplaints.length}</span> tickets
+                        </div>
+                        {(searchQuery || statusFilter !== 'all' || startDate || endDate) && (
+                            <button 
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setStatusFilter('all');
+                                    setStartDate('');
+                                    setEndDate('');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                                Reset All Filters
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -206,7 +289,7 @@ const Complaints = () => {
 
                         {/* Table Body */}
                         <div className="divide-y divide-gray-100">
-                            {filteredComplaints.map((c) => (
+                            {paginatedComplaints.map((c) => (
                                 <div
                                     key={c._id}
                                     onClick={() => navigate(`/complaints/${c._id}`)}
@@ -286,6 +369,13 @@ const Complaints = () => {
                                 </div>
                             ))}
                         </div>
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filteredComplaints.length}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

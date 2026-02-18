@@ -2,14 +2,10 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, User, FileText, Users, Shield, Trash2, Settings } from 'lucide-react';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
+import Pagination from '../components/Pagination';
+import FilterDropdown from '../components/FilterDropdown';
 import toast from 'react-hot-toast';
 import { employeeApi } from '../api/employeeApi';
-import {
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel
-} from '@mui/material';
 
 export default function ActivityLogs() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +14,10 @@ export default function ActivityLogs() {
     const [activityLogs, setActivityLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Fetch activity logs on component mount
     useEffect(() => {
@@ -63,6 +63,15 @@ export default function ActivityLogs() {
 
         return matchesSearch && matchesType && matchesDate;
     });
+
+    const paginatedLogs = filteredLogs.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterType, filterDate]);
 
     const getActionIcon = (action) => {
         switch (action) {
@@ -248,21 +257,12 @@ export default function ActivityLogs() {
 
                     {/* Filter Controls */}
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <FormControl fullWidth variant="outlined" size="small">
-                            <InputLabel>Filter by Activity Type</InputLabel>
-                            <Select
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                                label="Filter by Activity Type"
-                                className="bg-white cursor-pointer"
-                            >
-                                {filterOptions.map(option => (
-                                    <MenuItem key={option.value} value={option.value}>
-                                        {option.label}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                        <FilterDropdown
+                            value={filterType}
+                            onChange={setFilterType}
+                            options={filterOptions}
+                            className="w-full sm:w-64"
+                        />
 
                         <div className="relative flex-1">
                             <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
@@ -320,8 +320,15 @@ export default function ActivityLogs() {
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <Table columns={columns} data={filteredLogs} />
+                        <Table columns={columns} data={paginatedLogs} />
                     </div>
+                    
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={filteredLogs.length}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                    />
                 </div>
             )}
         </div>

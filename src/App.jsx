@@ -23,6 +23,8 @@ import BankDetails from './pages/BankDetails';
 import WithdrawalHistory from './pages/WithdrawalHistory';
 import AdminWallet from './pages/AdminWallet';
 import SalaryManagement from './pages/SalaryManagement';
+import TopupSettings from './pages/TopupSettings';
+import TopupManager from './pages/TopupManager';
 import Login from './pages/Login';
 import { setCredentials, logout, selectIsAuthenticated } from './store/slices/authSlice';
 import './App.css';
@@ -57,6 +59,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/applications" element={<Applications />} />
+              <Route path="/topup-manager" element={<TopupManager />} />
               <Route path="/employees" element={<Employees />} />
               <Route path="/activity-logs" element={<ActivityLogs />} />
               <Route path="/complaints" element={<Complaints />} />
@@ -66,6 +69,7 @@ function App() {
               <Route path="/admin/countries" element={<CountryManagement />} />
               <Route path="/admin/categories" element={<CategoryManagement />} />
               <Route path="/admin/apps" element={<AppManagement />} />
+              <Route path="/admin/topup-settings" element={<TopupSettings />} />
               <Route path="/bank-details" element={<BankDetails />} />
               <Route path="/payment-requests" element={<PaymentRequests />} />
               <Route path="/payment-requests/history" element={<WithdrawalHistory />} />

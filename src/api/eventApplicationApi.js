@@ -6,8 +6,13 @@ export const eventApplicationApi = {
         return response.data;
     },
 
-    updateApplicationStatus: async (id, status) => {
-        const response = await axiosInstance.put(`/api/events/admin/application/${id}`, { status });
+    updateApplicationStatus: async (id, statusData) => {
+        const isFormData = statusData instanceof FormData;
+        const response = await axiosInstance.put(`/api/events/admin/application/${id}`, statusData, {
+            headers: {
+                'Content-Type': isFormData ? 'multipart/form-data' : 'application/json'
+            }
+        });
         return response.data;
     }
 };

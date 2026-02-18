@@ -37,11 +37,48 @@ export const fetchAdminProfile = createAsyncThunk(
     }
 );
 
+export const uploadAdminQrCodeAction = createAsyncThunk(
+    'topups/uploadQrCode',
+    async (formData, { rejectWithValue }) => {
+        try {
+            const data = await topupApi.uploadAdminQrCode(formData);
+            return data.data || data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to upload QR code');
+        }
+    }
+);
+
+export const fetchQrCodeAction = createAsyncThunk(
+    'topups/fetchQrCode',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await topupApi.getQrCode();
+            return data.data || data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch QR code');
+        }
+    }
+);
+
+export const deleteQrCodeAction = createAsyncThunk(
+    'topups/deleteQrCode',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await topupApi.deleteQrCode();
+            return data.data || data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to delete QR code');
+        }
+    }
+);
+
 const topupSlice = createSlice({
     name: 'topups',
     initialState: {
         items: [],
         adminProfile: null,
+        currentQrCode: null,
         loading: false,
         processing: false,
         error: null
@@ -81,6 +118,34 @@ const topupSlice = createSlice({
             .addCase(updateTopupStatusAction.rejected, (state, action) => {
                 state.processing = false;
                 state.error = action.payload;
+            })
+            // Fetch QR Code
+            .addCase(fetchQrCodeAction.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchQrCodeAction.fulfilled, (state, action) => {
+                state.loading = false;
+                state.currentQrCode = action.payload;
+            })
+            .addCase(fetchQrCodeAction.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            // Delete QR Code
+            .addCase(deleteQrCodeAction.pending, (state) => {
+                state.processing = true;
+            })
+            .addCase(deleteQrCodeAction.fulfilled, (state) => {
+                state.processing = false;
+                state.currentQrCode = null;
+            })
+            .addCase(deleteQrCodeAction.rejected, (state, action) => {
+                state.processing = false;
+                state.error = action.payload;
+            })
+            // Upload QR Code (Success)
+            .addCase(uploadAdminQrCodeAction.fulfilled, (state, action) => {
+                state.currentQrCode = action.payload;
             })
             // Fetch Admin Profile
             .addCase(fetchAdminProfile.fulfilled, (state, action) => {

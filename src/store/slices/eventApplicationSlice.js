@@ -15,10 +15,11 @@ export const fetchEventApplications = createAsyncThunk(
 
 export const updateEventApplicationStatus = createAsyncThunk(
     'eventApplications/updateStatus',
-    async ({ id, status }, { rejectWithValue }) => {
+    async ({ id, data }, { rejectWithValue }) => {
         try {
-            const data = await eventApplicationApi.updateApplicationStatus(id, status);
-            return { id, status, message: data.message || 'Status updated successfully' };
+            const responseData = await eventApplicationApi.updateApplicationStatus(id, data);
+            const status = data instanceof FormData ? data.get('status') : data.status;
+            return { id, status, message: responseData.message || 'Status updated successfully' };
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to update status');
         }

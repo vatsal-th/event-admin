@@ -21,6 +21,8 @@ import {
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import TrainingAppModal from './TrainingAppModal';
+import Pagination from '../components/Pagination';
+import FilterDropdown from '../components/FilterDropdown';
 
 const TrainingApps = () => {
     const dispatch = useDispatch();
@@ -32,6 +34,10 @@ const TrainingApps = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingApp, setEditingApp] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         dispatch(fetchTrainingApps());
@@ -58,6 +64,15 @@ const TrainingApps = () => {
             return matchesSearch && matchesStatus;
         });
     }, [apps, searchQuery, statusFilter]);
+
+    const paginatedApps = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredApps.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredApps, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter]);
 
     const stats = useMemo(
         () => ({
@@ -190,20 +205,16 @@ const TrainingApps = () => {
                         </div>
 
                         {/* Filter Buttons */}
-                        <div className="flex gap-2">
-                            {['all', 'active'].map((status) => (
-                                <button
-                                    key={status}
-                                    onClick={() => setStatusFilter(status)}
-                                    className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl font-semibold capitalize transition-all cursor-pointer ${statusFilter === status
-                                        ? 'bg-gray-900 text-white shadow-lg'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    {status}
-                                </button>
-                            ))}
-                        </div>
+                        <FilterDropdown
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            options={[
+                                { value: 'all', label: 'All Status' },
+                                { value: 'active', label: 'Active' },
+                                { value: 'inactive', label: 'Inactive' }
+                            ]}
+                            className="min-w-[160px]"
+                        />
                     </div>
                 </div>
 
@@ -236,7 +247,7 @@ const TrainingApps = () => {
 
                         {/* Table Body */}
                         <div className="divide-y divide-gray-100">
-                            {filteredApps.map((app) => (
+                            {paginatedApps.map((app) => (
                                 <div
                                     key={app._id}
                                     className="p-4 sm:p-6 hover:bg-gray-50 transition-colors"
@@ -298,6 +309,12 @@ const TrainingApps = () => {
                                 </div>
                             ))}
                         </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filteredApps.length}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Eye, Loader2, User, Clock, Wallet, CheckCircle2, XCircle } from 'lucide-react';
+import { Eye, Loader2, User, Clock, Wallet, CheckCircle2, XCircle, Search, Filter, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import Pagination from '../components/Pagination';
+import FilterDropdown from '../components/FilterDropdown';
 import { fetchWithdrawals, approveWithdrawalRequest, rejectWithdrawalRequest } from '../store/slices/withdrawalSlice';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
@@ -18,6 +20,16 @@ export default function PaymentRequests() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [showRejectInput, setShowRejectInput] = useState(false);
+
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         dispatch(fetchWithdrawals());
@@ -62,6 +74,50 @@ export default function PaymentRequests() {
             }
         });
     };
+
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            // Search filter
+            const searchLower = searchTerm.toLowerCase();
+            const fullName = (item.userId?.fullName || '').toLowerCase();
+            const id = (item.userId?._id || '').toLowerCase();
+            const matchesSearch = fullName.includes(searchLower) || id.includes(searchLower);
+
+            // Status filter
+            const matchesStatus = statusFilter === 'all' || item.status?.toLowerCase() === statusFilter.toLowerCase();
+
+            // Date range filter
+            let matchesDate = true;
+            if (startDate || endDate) {
+                const itemDate = new Date(item.createdAt);
+                itemDate.setHours(0, 0, 0, 0);
+
+                if (startDate) {
+                    const start = new Date(startDate);
+                    start.setHours(0, 0, 0, 0);
+                    if (itemDate < start) matchesDate = false;
+                }
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(0, 0, 0, 0);
+                    if (itemDate > end) matchesDate = false;
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesDate;
+        });
+    }, [items, searchTerm, statusFilter, startDate, endDate]);
+
+    const paginatedItems = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredItems.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredItems, currentPage]);
+
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter, startDate, endDate]);
 
     const columns = [
         {
@@ -145,6 +201,87 @@ export default function PaymentRequests() {
                 </button>
             </div>
 
+            {/* Filters Section */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4 mb-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search by user name or ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-sm"
+                        />
+                        {searchTerm && (
+                            <button 
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="flex flex-wrap md:flex-nowrap gap-4">
+                        <FilterDropdown
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            options={[
+                                { value: 'all', label: 'All Status' },
+                                { value: 'pending', label: 'Pending' },
+                                { value: 'approved', label: 'Approved' },
+                                { value: 'rejected', label: 'Rejected' }
+                            ]}
+                        />
+
+                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
+                            <Calendar size={16} className="text-gray-400" />
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="bg-transparent border-0 p-1 text-xs font-medium text-gray-700 outline-hidden focus:ring-0"
+                            />
+                            <span className="text-gray-300">to</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="bg-transparent border-0 p-1 text-xs font-medium text-gray-700 outline-hidden focus:ring-0"
+                            />
+                            {(startDate || endDate) && (
+                                <button 
+                                    onClick={() => { setStartDate(''); setEndDate(''); }}
+                                    className="ml-1 text-gray-400 hover:text-red-500"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                    <div className="text-gray-500">
+                        Showing <span className="font-bold text-gray-900">{filteredItems.length}</span> requests
+                    </div>
+                    {(searchTerm || statusFilter !== 'all' || startDate || endDate) && (
+                        <button 
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setStartDate('');
+                                setEndDate('');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                            Reset All Filters
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* Table */}
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -152,11 +289,20 @@ export default function PaymentRequests() {
                     <p className="text-gray-500 font-medium">Fetching withdrawals...</p>
                 </div>
             ) : (
-                <Table
-                    columns={columns}
-                    data={items}
-                    onRowAction={handleViewDetails}
-                />
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <Table
+                        columns={columns}
+                        data={paginatedItems}
+                        onRowAction={handleViewDetails}
+                    />
+                    
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={filteredItems.length}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
             )}
 
             {/* Withdrawal Detail Modal */}

@@ -3,6 +3,7 @@ import { Plus, Users, Search, Edit, Trash2, Eye } from 'lucide-react';
 import Table from '../components/Table';
 import Modal from '../components/Modal';
 import Badge from '../components/Badge';
+import Pagination from '../components/Pagination';
 import toast from 'react-hot-toast';
 import { employeeApi } from '../api/employeeApi';
 import {
@@ -25,6 +26,10 @@ export default function Employees() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Fetch employees on component mount
     useEffect(() => {
@@ -77,6 +82,15 @@ export default function Employees() {
 
         return matchesTab && matchesSearch;
     });
+
+    const paginatedEmployees = filteredEmployees.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, activeTab]);
 
     const handleViewEmployee = (employee) => {
         setSelectedEmployee(employee);
@@ -383,8 +397,15 @@ export default function Employees() {
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <Table columns={columns} data={filteredEmployees} />
+                        <Table columns={columns} data={paginatedEmployees} />
                     </div>
+                    
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={filteredEmployees.length}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                    />
                 </div>
             )}
 

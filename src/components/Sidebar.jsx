@@ -20,7 +20,9 @@ import {
     Library,
     Landmark,
     Wallet,
-    Banknote
+    Banknote,
+    QrCode,
+    Zap
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, onClose }) {
@@ -30,6 +32,7 @@ export default function Sidebar({ onLogout, onClose }) {
     const navItems = [
         { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/applications', icon: FileText, label: 'Applications' },
+        { path: '/topup-manager', icon: Zap, label: 'Top-Up Manager' },
         { path: '/employees', icon: UserCheck, label: 'Employees' },
         { path: '/activity-logs', icon: Activity, label: 'Activity Logs' },
         { path: '/complaints', icon: MessageSquare, label: 'Complaints' },
@@ -42,6 +45,7 @@ export default function Sidebar({ onLogout, onClose }) {
                 { path: '/admin/countries', icon: Globe, label: 'Countries' },
                 { path: '/admin/categories', icon: Tag, label: 'Categories' },
                 { path: '/admin/apps', icon: LayoutGrid, label: 'Apps' },
+                { path: '/admin/topup-settings', icon: QrCode, label: 'Top-up Settings' },
             ]
         },
         { path: '/bank-details', icon: Landmark, label: 'Bank Verification' },
@@ -54,7 +58,7 @@ export default function Sidebar({ onLogout, onClose }) {
 
     // Auto-expand dropdown if a child route is active
     useEffect(() => {
-        const adminRoutes = ['/admin/countries', '/admin/categories', '/admin/apps'];
+        const adminRoutes = ['/admin/countries', '/admin/categories', '/admin/apps', '/admin/topup-settings'];
         if (adminRoutes.some(route => location.pathname.startsWith(route))) {
             setIsAdminOpen(true);
         }

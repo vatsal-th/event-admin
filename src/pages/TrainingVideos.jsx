@@ -20,6 +20,7 @@ import {
 } from '../store/slices/trainingAppSlice';
 import toast from 'react-hot-toast';
 import AddVideoModal from './AddVideoModal';
+import Pagination from '../components/Pagination';
 
 const TrainingVideos = () => {
     const { appId } = useParams();
@@ -29,6 +30,10 @@ const TrainingVideos = () => {
     const { apps, videos, loading, error } = useSelector((state) => state.trainingApps);
     const [modalOpen, setModalOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6; // Grid looks better with 3 columns, so multiples of 3
 
     const currentApp = apps.find((app) => app._id === appId);
 
@@ -60,6 +65,15 @@ const TrainingVideos = () => {
             document.body.style.overflow = 'unset';
         };
     }, [deleteConfirm]);
+
+    const paginatedVideos = videos.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [videos.length]);
 
     const handleDelete = async (videoId) => {
         try {
@@ -160,7 +174,7 @@ const TrainingVideos = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                        {videos.map((video, index) => {
+                        {paginatedVideos.map((video, index) => {
                             const thumbnail = getVideoThumbnail(video.videoUrl);
 
                             return (
@@ -225,6 +239,17 @@ const TrainingVideos = () => {
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+                
+                {videos.length > 0 && (
+                    <div className="mt-6">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={videos.length}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>

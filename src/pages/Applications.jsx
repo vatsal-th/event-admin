@@ -1,16 +1,45 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Eye, Loader2, CheckCircle2, XCircle, User, Phone, Globe, Tag, Info, Layout, Calendar, Clock, DollarSign, Fingerprint, Instagram, Share2, Users } from 'lucide-react';
+import { 
+    Eye, 
+    Loader2, 
+    CheckCircle2, 
+    XCircle, 
+    User, 
+    Phone, 
+    Globe, 
+    Tag, 
+    Info, 
+    Layout, 
+    Calendar, 
+    Clock, 
+    DollarSign, 
+    Fingerprint, 
+    Instagram, 
+    Share2, 
+    Users,
+    Search,
+    Filter,
+    X,
+    LayoutGrid,
+    Zap,
+    AlertCircle,
+    RefreshCw,
+    Target,
+    IndianRupee,
+    ChevronLeft,
+    ChevronRight
+} from 'lucide-react';
 import { fetchHostingApplications, updateHostingApplicationStatus, clearMessages as clearHostingMessages } from '../store/slices/hostingApplicationSlice';
 import { fetchEventApplications, updateEventApplicationStatus, clearMessages as clearEventMessages } from '../store/slices/eventApplicationSlice';
 import { fetchAgencyApplications, updateAgencyApplicationStatus, clearMessages as clearAgencyMessages } from '../store/slices/agencyApplicationSlice';
 import { fetchInfluencerApplications, updateInfluencerApplicationStatus, clearMessages as clearInfluencerMessages } from '../store/slices/influencerApplicationSlice';
-import { fetchAllTopups, updateTopupStatusAction, fetchAdminProfile, clearError as clearTopupError } from '../store/slices/topupSlice';
-import { IndianRupee, Target, RefreshCw, AlertCircle, Zap, LayoutGrid } from 'lucide-react';
 import { mockApplications } from '../data/mockData';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
 import Modal from '../components/Modal';
+import Pagination from '../components/Pagination';
+import FilterDropdown from '../components/FilterDropdown';
 import toast from 'react-hot-toast';
 
 export default function Applications() {
@@ -19,19 +48,29 @@ export default function Applications() {
     const { applications: eventApps, loading: eventLoading, error: eventError, success: eventSuccess } = useSelector((state) => state.eventApplications);
     const { applications: agencyApps, loading: agencyLoading, error: agencyError, success: agencySuccess } = useSelector((state) => state.agencyApplications);
     const { applications: influencerApps, loading: influencerLoading, error: influencerError, success: influencerSuccess } = useSelector((state) => state.influencerApplications);
-    const { items: topupApps, adminProfile, loading: topupLoading, processing: topupProcessing, error: topupError } = useSelector((state) => state.topups);
 
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [activeTab, setActiveTab] = useState('event-hosting');
+    const [eventBanner, setEventBanner] = useState(null);
+    const [bannerPreview, setBannerPreview] = useState(null);
+
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const tabs = [
         { id: 'event-hosting', label: 'Event Hosting' },
         { id: 'apply-event', label: 'Apply Event' },
         { id: 'agency', label: 'Agency' },
-        { id: 'influencer', label: 'Influencer' },
-        { id: 'top-up', label: 'Top-Up' }
+        { id: 'influencer', label: 'Influencer' }
     ];
 
     useEffect(() => {
@@ -43,9 +82,6 @@ export default function Applications() {
             dispatch(fetchAgencyApplications());
         } else if (activeTab === 'influencer') {
             dispatch(fetchInfluencerApplications());
-        } else if (activeTab === 'top-up') {
-            dispatch(fetchAllTopups());
-            dispatch(fetchAdminProfile());
         }
     }, [dispatch, activeTab]);
 
@@ -91,11 +127,7 @@ export default function Applications() {
             toast.success(influencerSuccess);
             dispatch(clearInfluencerMessages());
         }
-        if (topupError) {
-            toast.error(topupError);
-            dispatch(clearTopupError());
-        }
-    }, [influencerError, influencerSuccess, topupError, dispatch]);
+    }, [influencerError, influencerSuccess, dispatch]);
 
     const handleViewDetails = (application) => {
         setSelectedApplication(application);
@@ -108,17 +140,28 @@ export default function Applications() {
             if (activeTab === 'event-hosting') {
                 await dispatch(updateHostingApplicationStatus({ id, status })).unwrap();
             } else if (activeTab === 'apply-event') {
-                await dispatch(updateEventApplicationStatus({ id, status })).unwrap();
+                if (status === 'Approved') {
+                    if (!eventBanner) {
+                        toast.error('Please upload an event banner first');
+                        setIsProcessing(false);
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('status', 'Approved');
+                    formData.append('eventBanner', eventBanner);
+                    await dispatch(updateEventApplicationStatus({ id, data: formData })).unwrap();
+                } else {
+                    await dispatch(updateEventApplicationStatus({ id, data: { status } })).unwrap();
+                }
             } else if (activeTab === 'agency') {
                 await dispatch(updateAgencyApplicationStatus({ id, status })).unwrap();
             } else if (activeTab === 'influencer') {
                 await dispatch(updateInfluencerApplicationStatus({ id, status })).unwrap();
-            } else if (activeTab === 'top-up') {
-                await dispatch(updateTopupStatusAction({ id, status })).unwrap();
-                dispatch(fetchAdminProfile()); // Refresh balance after top-up
             }
             setIsModalOpen(false);
             setSelectedApplication(null);
+            setEventBanner(null);
+            setBannerPreview(null);
         } catch (err) {
             // Error is handled by useEffect
         } finally {
@@ -126,16 +169,68 @@ export default function Applications() {
         }
     };
 
-    const displayApplications = useMemo(() => {
+    const filteredApplications = useMemo(() => {
+        let apps = [];
         switch (activeTab) {
-            case 'event-hosting': return hostingApps;
-            case 'apply-event': return eventApps;
-            case 'agency': return agencyApps;
-            case 'influencer': return influencerApps;
-            case 'top-up': return topupApps;
-            default: return mockApplications.filter(app => app.category === activeTab);
+            case 'event-hosting': apps = hostingApps; break;
+            case 'apply-event': apps = eventApps; break;
+            case 'agency': apps = agencyApps; break;
+            case 'influencer': apps = influencerApps; break;
+            default: apps = mockApplications.filter(app => app.category === activeTab);
         }
-    }, [activeTab, hostingApps, eventApps, agencyApps, influencerApps, topupApps]);
+
+        return apps.filter(app => {
+            // Search filter
+            const searchLower = searchTerm.toLowerCase();
+            const fullName = (app.fullName || app.userName || '').toLowerCase();
+            const mobile = (app.mobileNumber || '').toLowerCase();
+            const id = (app._id || app.id || '').toLowerCase();
+            const talent = (app.talent || '').toLowerCase();
+            
+            const matchesSearch = 
+                fullName.includes(searchLower) ||
+                mobile.includes(searchLower) ||
+                id.includes(searchLower) ||
+                talent.includes(searchLower);
+
+            // Status filter
+            const matchesStatus = statusFilter === 'all' || app.status?.toLowerCase() === statusFilter.toLowerCase();
+
+            // Date range filter
+            let matchesDate = true;
+            const dateToCompare = app.createdAt || app.appliedDate;
+            if (dateToCompare && (startDate || endDate)) {
+                const itemDate = new Date(dateToCompare);
+                itemDate.setHours(0, 0, 0, 0);
+
+                if (startDate) {
+                    const start = new Date(startDate);
+                    start.setHours(0, 0, 0, 0);
+                    if (itemDate < start) matchesDate = false;
+                }
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(0, 0, 0, 0);
+                    if (itemDate > end) matchesDate = false;
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesDate;
+        });
+    }, [activeTab, hostingApps, eventApps, agencyApps, influencerApps, searchTerm, statusFilter, startDate, endDate]);
+
+    const paginatedApplications = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredApplications.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredApplications, currentPage]);
+
+    const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab, searchTerm, statusFilter, startDate, endDate]);
+
+    const displayApplications = paginatedApplications;
 
     const isLoading = useMemo(() => {
         switch (activeTab) {
@@ -143,10 +238,9 @@ export default function Applications() {
             case 'apply-event': return eventLoading;
             case 'agency': return agencyLoading;
             case 'influencer': return influencerLoading;
-            case 'top-up': return topupLoading;
             default: return false;
         }
-    }, [activeTab, hostingLoading, eventLoading, agencyLoading, influencerLoading, topupLoading]);
+    }, [activeTab, hostingLoading, eventLoading, agencyLoading, influencerLoading]);
 
     const columns = useMemo(() => {
         if (activeTab === 'event-hosting') {
@@ -371,79 +465,6 @@ export default function Applications() {
             ];
         }
 
-        if (activeTab === 'top-up') {
-            return [
-                {
-                    header: 'Agent Name',
-                    render: (row) => (
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                                {row.userId?.fullName?.charAt(0) || <User className="w-5 h-5" />}
-                            </div>
-                            <div>
-                                <p className="font-medium text-gray-900">{row.userId?.fullName || 'N/A'}</p>
-                                <p className="text-xs text-gray-500">ID: {row.userId?._id?.substring(0, 8)}...</p>
-                            </div>
-                        </div>
-                    )
-                },
-                {
-                    header: 'App Name',
-                    render: (row) => (
-                        <div className="flex items-center gap-2">
-                            <LayoutGrid className="w-4 h-4 text-gray-400" />
-                            <span className="font-medium text-gray-700">{row.appId?.appName || 'N/A'}</span>
-                        </div>
-                    )
-                },
-                {
-                    header: 'Target Details',
-                    render: (row) => (
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                                <Target className="w-3.5 h-3.5 text-blue-500" />
-                                {row.targetName || 'N/A'}
-                            </div>
-                            <span className="text-xs text-gray-500">UID: {row.targetUserId || 'N/A'}</span>
-                        </div>
-                    )
-                },
-                {
-                    header: 'Amount',
-                    render: (row) => (
-                        <div className="flex items-center gap-1 font-bold text-gray-900">
-                            <IndianRupee size={14} className="text-gray-400" />
-                            {row.amount?.toLocaleString()}
-                        </div>
-                    )
-                },
-                {
-                    header: 'Date',
-                    render: (row) => (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar size={14} className="text-gray-400" />
-                            {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}
-                        </div>
-                    )
-                },
-                {
-                    header: 'Status',
-                    render: (row) => <Badge status={row.status.toLowerCase()} />
-                },
-                {
-                    header: 'Action',
-                    render: (row) => (
-                        <button
-                            onClick={() => handleViewDetails(row)}
-                            className="text-blue-600 hover:text-blue-800 transition-colors p-2 hover:bg-blue-50 rounded-lg cursor-pointer"
-                        >
-                            <Eye className="w-5 h-5" />
-                        </button>
-                    )
-                }
-            ];
-        }
-
         // Default columns for other categories (using mock data structure)
         return [
             {
@@ -512,6 +533,86 @@ export default function Applications() {
                     ))}
                 </div>
             </div>
+            {/* Filters Section */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4 mb-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, ID, or mobile..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-sm"
+                        />
+                        {searchTerm && (
+                            <button 
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={16} />
+                        </button>
+                        )}
+                    </div>
+
+                    <div className="flex flex-wrap md:flex-nowrap gap-4">
+                        <FilterDropdown
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            options={[
+                                { value: 'all', label: 'All Status' },
+                                { value: 'pending', label: 'Pending' },
+                                { value: 'approved', label: 'Approved' },
+                                { value: 'rejected', label: 'Rejected' }
+                            ]}
+                        />
+
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+                            <Calendar size={16} className="text-gray-400" />
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="bg-transparent border-0 p-1 text-xs font-medium text-gray-700 outline-hidden focus:ring-0"
+                            />
+                            <span className="text-gray-300">to</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="bg-transparent border-0 p-1 text-xs font-medium text-gray-700 outline-hidden focus:ring-0"
+                            />
+                            {(startDate || endDate) && (
+                                <button 
+                                    onClick={() => { setStartDate(''); setEndDate(''); }}
+                                    className="ml-1 text-gray-400 hover:text-red-500"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                    <div className="text-gray-500">
+                        Showing <span className="font-bold text-gray-900">{displayApplications.length}</span> applications
+                    </div>
+                    {(searchTerm || statusFilter !== 'all' || startDate || endDate) && (
+                        <button 
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setStartDate('');
+                                setEndDate('');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                            Reset All Filters
+                        </button>
+                    )}
+                </div>
+            </div>
 
             {isLoading && displayApplications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20">
@@ -519,7 +620,16 @@ export default function Applications() {
                     <p className="mt-4 text-gray-500 font-medium">Loading applications...</p>
                 </div>
             ) : (
-                <Table columns={columns} data={displayApplications} />
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <Table columns={columns} data={displayApplications} />
+                    
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={filteredApplications.length}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
             )}
 
             {selectedApplication && (
@@ -528,6 +638,8 @@ export default function Applications() {
                     onClose={() => {
                         setIsModalOpen(false);
                         setSelectedApplication(null);
+                        setEventBanner(null);
+                        setBannerPreview(null);
                     }}
                     title="Application Details"
                     size="lg"
@@ -647,6 +759,54 @@ export default function Applications() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Banner Upload Section for Approval */}
+                                    {selectedApplication.status.toLowerCase() === 'pending' && (
+                                        <div className="md:col-span-2 space-y-4">
+                                            <div className="flex items-center gap-2 text-blue-600">
+                                                <Zap size={18} />
+                                                <h4 className="font-bold text-sm">Required for Approval: Event Banner</h4>
+                                            </div>
+                                            
+                                            <div className="relative group border-2 border-dashed border-gray-200 rounded-3xl p-6 transition-all hover:border-blue-400 hover:bg-blue-50/30 flex flex-col items-center justify-center text-center">
+                                                {bannerPreview ? (
+                                                    <div className="relative">
+                                                        <img 
+                                                            src={bannerPreview} 
+                                                            alt="Banner Preview" 
+                                                            className="w-full h-48 object-cover rounded-2xl shadow-md"
+                                                        />
+                                                        <button 
+                                                            onClick={() => { setEventBanner(null); setBannerPreview(null); }}
+                                                            className="absolute -top-2 -right-2 bg-white text-red-600 p-2 rounded-full shadow-lg border border-red-50 hover:bg-red-50 transition-colors"
+                                                        >
+                                                            <RefreshCw size={16} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="py-4">
+                                                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto text-blue-600 mb-3">
+                                                            <RefreshCw size={24} className="animate-pulse" />
+                                                        </div>
+                                                        <p className="text-sm font-bold text-gray-900">Choose Event Banner</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Recommended size: 1200x600px</p>
+                                                        <input 
+                                                            type="file" 
+                                                            accept="image/*"
+                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files[0];
+                                                                if (file) {
+                                                                    setEventBanner(file);
+                                                                    setBannerPreview(URL.createObjectURL(file));
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         ) : activeTab === 'agency' ? (
@@ -760,51 +920,6 @@ export default function Applications() {
                                     </div>
                                 </div>
                             </>
-                        ) : activeTab === 'top-up' ? (
-                            /* Top-Up Application View (Real Data) */
-                            <>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-6 border-b border-gray-200">
-                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-blue-100">
-                                        {selectedApplication.userId?.fullName?.charAt(0) || <Zap size={32} />}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-2xl font-bold text-gray-900">{selectedApplication.userId?.fullName || 'N/A'}</h3>
-                                        <div className="flex flex-wrap items-center gap-3 mt-2">
-                                            <Badge status={selectedApplication.status.toLowerCase()} />
-                                            <span className="text-sm text-gray-500 font-medium">Agent ID: {selectedApplication.userId?._id}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Request Details</p>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-500 flex items-center gap-2"><LayoutGrid size={16} /> Target App</span>
-                                                <span className="text-sm font-bold text-gray-900">{selectedApplication.appId?.appName || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-500 flex items-center gap-2"><IndianRupee size={16} /> Amount</span>
-                                                <span className="text-sm font-bold text-blue-600">₹{selectedApplication.amount?.toLocaleString()}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Target Info</p>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-500 flex items-center gap-2"><Target size={16} /> Target Name</span>
-                                                <span className="text-sm font-bold text-gray-900">{selectedApplication.targetName || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-500 flex items-center gap-2"><Fingerprint size={16} /> Target ID</span>
-                                                <span className="text-sm font-bold text-gray-900">{selectedApplication.targetUserId || 'N/A'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
                         ) : (
                             /* Placeholder for other categories */
                             <div className="space-y-6">
@@ -828,7 +943,7 @@ export default function Applications() {
                         )}
 
                         {/* Actions for Real API Data */}
-                        {(activeTab === 'event-hosting' || activeTab === 'apply-event' || activeTab === 'agency' || activeTab === 'influencer' || activeTab === 'top-up') && selectedApplication.status.toLowerCase() === 'pending' && (
+                        {(activeTab === 'event-hosting' || activeTab === 'apply-event' || activeTab === 'agency' || activeTab === 'influencer') && selectedApplication.status.toLowerCase() === 'pending' && (
                             <div className="flex gap-4 pt-6 border-t border-gray-100">
                                 <button
                                     onClick={() => handleStatusUpdate(selectedApplication._id, 'Rejected')}
