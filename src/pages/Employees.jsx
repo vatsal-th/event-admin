@@ -156,10 +156,17 @@ export default function Employees() {
 
     const getPermissionLabel = (permission) => {
         const labels = {
-            'apply_event': 'Apply Events',
-            'accept_event': 'Accept Events',
-            'manage_users': 'Manage Users',
-            'manage_payments': 'Manage Payments',
+            'hosting_approval': 'Hosting Approval',
+            'event_approval': 'Event Approval',
+            'agency_approval': 'Agency Approval',
+            'influencer_approval': 'Influencer Approval',
+            'topup_approval': 'Top Up Status Update',
+            'complaints_manage': 'Complaints Management',
+            'training_manage': 'Training Manage',
+            'content_manage': 'Content Management',
+            'bank_manage': 'Bank Management',
+            'withdrawal_manage': 'Withdrawal Management',
+            'manage_users': 'Employee Management',
             'view_reports': 'View Reports'
         };
         return labels[permission] || permission;
@@ -182,32 +189,47 @@ export default function Employees() {
             )
         },
         {
-            header: 'Gender',
-            accessor: 'gender',
+            header: 'Role',
+            accessor: 'role',
             render: (row) => (
-                <span className="capitalize text-sm text-gray-600">{row.gender}</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+                    row.role?.toLowerCase() === 'admin' 
+                        ? 'bg-purple-100 text-purple-700' 
+                        : 'bg-gray-100 text-gray-700'
+                }`}>
+                    {row.role || 'Employee'}
+                </span>
             )
         },
         {
             header: 'Permissions',
             accessor: 'permissions',
-            render: (row) => (
-                <div className="flex flex-wrap gap-1">
-                    {row.permissions.slice(0, 2).map((perm, index) => (
-                        <span
-                            key={index}
-                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                        >
-                            {getPermissionLabel(perm)}
+            render: (row) => {
+                if (row.role?.toLowerCase() === 'admin') {
+                    return (
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-bold">
+                            All Access
                         </span>
-                    ))}
-                    {row.permissions.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                            +{row.permissions.length - 2} more
-                        </span>
-                    )}
-                </div>
-            )
+                    );
+                }
+                return (
+                    <div className="flex flex-wrap gap-1">
+                        {row.permissions.slice(0, 2).map((perm, index) => (
+                            <span
+                                key={index}
+                                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                            >
+                                {getPermissionLabel(perm)}
+                            </span>
+                        ))}
+                        {row.permissions.length > 2 && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                +{row.permissions.length - 2} more
+                            </span>
+                        )}
+                    </div>
+                );
+            }
         },
         {
             header: 'Last Login',
@@ -462,10 +484,17 @@ function AddEmployeeModal({ isOpen, onClose, onSubmit, isLoading }) {
     });
 
     const availablePermissions = [
-        { id: 'apply_event', label: 'Apply Events' },
-        { id: 'accept_event', label: 'Accept Events' },
-        { id: 'manage_users', label: 'Manage Users' },
-        { id: 'manage_payments', label: 'Manage Payments' },
+        { id: 'hosting_approval', label: 'Hosting Applications' },
+        { id: 'event_approval', label: 'Event Applications' },
+        { id: 'agency_approval', label: 'Agency Applications' },
+        { id: 'influencer_approval', label: 'Influencer Applications' },
+        { id: 'topup_approval', label: 'Top Up Status Update' },
+        { id: 'complaints_manage', label: 'Complaints Management' },
+        { id: 'training_manage', label: 'Training Manage' },
+        { id: 'content_manage', label: 'Countries, Categories, QR' },
+        { id: 'bank_manage', label: 'Bank Verification' },
+        { id: 'withdrawal_manage', label: 'Withdrawal Management' },
+        { id: 'manage_users', label: 'Employee Management' },
         { id: 'view_reports', label: 'View Reports' }
     ];
 
@@ -615,10 +644,17 @@ function ViewEmployeeModal({ isOpen, onClose, employee }) {
 
     const getPermissionLabel = (permission) => {
         const labels = {
-            'apply_event': 'Apply Events',
-            'accept_event': 'Accept Events',
-            'manage_users': 'Manage Users',
-            'manage_payments': 'Manage Payments',
+            'hosting_approval': 'Hosting Approval',
+            'event_approval': 'Event Approval',
+            'agency_approval': 'Agency Approval',
+            'influencer_approval': 'Influencer Approval',
+            'topup_approval': 'Top Up Status Update',
+            'complaints_manage': 'Complaints Management',
+            'training_manage': 'Training Manage',
+            'content_manage': 'Content Management',
+            'bank_manage': 'Bank Management',
+            'withdrawal_manage': 'Withdrawal Management',
+            'manage_users': 'Employee Management',
             'view_reports': 'View Reports'
         };
         return labels[permission] || permission;
@@ -654,6 +690,10 @@ function ViewEmployeeModal({ isOpen, onClose, employee }) {
                         <p className="text-base text-gray-900 mt-1">{employee.email}</p>
                     </div>
                     <div>
+                        <p className="text-sm font-medium text-gray-500">Role</p>
+                        <p className="text-base text-gray-900 mt-1 capitalize font-bold text-blue-600">{employee.role || 'Employee'}</p>
+                    </div>
+                    <div>
                         <p className="text-sm font-medium text-gray-500">Gender</p>
                         <p className="text-base text-gray-900 mt-1 capitalize">{employee.gender}</p>
                     </div>
@@ -683,14 +723,20 @@ function ViewEmployeeModal({ isOpen, onClose, employee }) {
                 <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="font-semibold text-gray-900 mb-3">Permissions</h4>
                     <div className="flex flex-wrap gap-2">
-                        {employee.permissions.map((permission, index) => (
-                            <span
-                                key={index}
-                                className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                            >
-                                {getPermissionLabel(permission)}
+                        {employee.role?.toLowerCase() === 'admin' ? (
+                            <span className="px-4 py-2 bg-amber-100 text-amber-800 text-sm rounded-full font-bold">
+                                Super Admin - All Permissions Granted
                             </span>
-                        ))}
+                        ) : (
+                            employee.permissions.map((permission, index) => (
+                                <span
+                                    key={index}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                                >
+                                    {getPermissionLabel(permission)}
+                                </span>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
@@ -708,18 +754,30 @@ function EditEmployeeModal({ isOpen, onClose, onSubmit, employee, isLoading }) {
     // Update form data when employee changes
     useEffect(() => {
         if (employee) {
+            // Filter permissions to only include valid ones from availablePermissions list
+            // This prevents old/legacy permission IDs (like apply_event) from being sent to server
+            const validPermissionIds = availablePermissions.map(ap => ap.id);
+            const filteredPermissions = (employee.permissions || []).filter(p => validPermissionIds.includes(p));
+
             setFormData({
                 fullName: employee.fullName || '',
-                permissions: employee.permissions || []
+                permissions: filteredPermissions
             });
         }
     }, [employee]);
 
     const availablePermissions = [
-        { id: 'apply_event', label: 'Apply Events' },
-        { id: 'accept_event', label: 'Accept Events' },
-        { id: 'manage_users', label: 'Manage Users' },
-        { id: 'manage_payments', label: 'Manage Payments' },
+        { id: 'hosting_approval', label: 'Hosting Applications' },
+        { id: 'event_approval', label: 'Event Applications' },
+        { id: 'agency_approval', label: 'Agency Applications' },
+        { id: 'influencer_approval', label: 'Influencer Applications' },
+        { id: 'topup_approval', label: 'Top Up Status Update' },
+        { id: 'complaints_manage', label: 'Complaints Management' },
+        { id: 'training_manage', label: 'Training Manage' },
+        { id: 'content_manage', label: 'Countries, Categories, QR' },
+        { id: 'bank_manage', label: 'Bank Verification' },
+        { id: 'withdrawal_manage', label: 'Withdrawal Management' },
+        { id: 'manage_users', label: 'Employee Management' },
         { id: 'view_reports', label: 'View Reports' }
     ];
 

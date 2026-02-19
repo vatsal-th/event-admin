@@ -21,8 +21,10 @@ import {
     Filter,
     X,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Info
 } from 'lucide-react';
+import { selectUser } from '../store/slices/authSlice';
 import { fetchAllTopups, updateTopupStatusAction, fetchAdminProfile, clearError } from '../store/slices/topupSlice';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
@@ -33,7 +35,13 @@ import toast from 'react-hot-toast';
 
 export default function TopupManager() {
     const dispatch = useDispatch();
+    const user = useSelector(selectUser);
     const { items, adminProfile, loading, processing, error } = useSelector((state) => state.topups);
+
+    const canApproveTopup = useMemo(() => {
+        if (!user) return false;
+        return user.role?.toLowerCase() === 'admin' || user.permissions?.includes('topup_approval');
+    }, [user]);
 
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,6 +126,10 @@ export default function TopupManager() {
     };
 
     const handleStatusUpdate = async (id, status) => {
+        if (!canApproveTopup) {
+            toast.error('You do not have permission to approve/reject top-ups');
+            return;
+        }
         setIsProcessing(true);
         try {
             await dispatch(updateTopupStatusAction({ id, status })).unwrap();
@@ -451,21 +463,28 @@ export default function TopupManager() {
                         </div>
 
                         {selectedRequest.status.toLowerCase() === 'pending' && (
-                            <div className="flex gap-4 pt-6 border-t border-gray-100">
-                                <button
-                                    onClick={() => handleStatusUpdate(selectedRequest._id, 'Rejected')}
-                                    disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-2xl hover:bg-red-100 transition-all font-bold cursor-pointer flex items-center justify-center gap-2"
-                                >
-                                    <XCircle size={20} /> Reject
-                                </button>
-                                <button
-                                    onClick={() => handleStatusUpdate(selectedRequest._id, 'Approved')}
-                                    disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl hover:shadow-lg transition-all font-bold cursor-pointer flex items-center justify-center gap-2"
-                                >
-                                    {isProcessing ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={20} />} Approve
-                                </button>
+                            <div className="flex flex-col gap-3 pt-6 border-t border-gray-100">
+                                {!canApproveTopup && (
+                                    <p className="text-sm font-bold text-amber-600 flex items-center gap-2 bg-amber-50 p-3 rounded-xl border border-amber-100">
+                                        <Info className="w-5 h-5" /> You do not have permission to approve/reject this request.
+                                    </p>
+                                )}
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => handleStatusUpdate(selectedRequest._id, 'Rejected')}
+                                        disabled={isProcessing || !canApproveTopup}
+                                        className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-2xl hover:bg-red-100 transition-all font-bold cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <XCircle size={20} /> Reject
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusUpdate(selectedRequest._id, 'Approved')}
+                                        disabled={isProcessing || !canApproveTopup}
+                                        className="flex-1 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl hover:shadow-lg transition-all font-bold cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isProcessing ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={20} />} Approve
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

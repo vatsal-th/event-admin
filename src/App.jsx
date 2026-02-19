@@ -26,19 +26,51 @@ import SalaryManagement from './pages/SalaryManagement';
 import TopupSettings from './pages/TopupSettings';
 import TopupManager from './pages/TopupManager';
 import Login from './pages/Login';
-import { setCredentials, logout, selectIsAuthenticated } from './store/slices/authSlice';
+import { setCredentials, logout, selectIsAuthenticated, selectUser } from './store/slices/authSlice';
 import './App.css';
+import AccessDenied from './components/AccessDenied';
+
+const ProtectedRoute = ({ children, permission, permissions }) => {
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectUser);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" />;
+  }
+
+  if (user?.role?.toLowerCase() === 'admin') {
+    return children;
+  }
+
+  if (permissions) {
+    const hasAny = permissions.some(p => user?.permissions?.includes(p));
+    if (!hasAny) return <AccessDenied message="You don't have permission to access this section." />;
+  }
+
+  if (permission && !user?.permissions?.includes(permission)) {
+    return <AccessDenied message="You don't have permission to access this page." />;
+  }
+
+  return children;
+};
 
 function App() {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectUser);
 
   useEffect(() => {
-    // Check for stored token on app initialization
+    // Check for stored token and user on app initialization
     const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
 
-    if (token) {
-      dispatch(setCredentials({ token, user: null }));
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        dispatch(setCredentials({ token, user }));
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+      }
     }
   }, [dispatch]);
 
@@ -58,30 +90,130 @@ function App() {
           <Layout onLogout={handleLogout}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/applications" element={<Applications />} />
-              <Route path="/topup-manager" element={<TopupManager />} />
-              <Route path="/employees" element={<Employees />} />
-              <Route path="/activity-logs" element={<ActivityLogs />} />
-              <Route path="/complaints" element={<Complaints />} />
+              <Route 
+                path="/applications" 
+                element={
+                  <ProtectedRoute permissions={['hosting_approval', 'event_approval', 'agency_approval', 'influencer_approval']}>
+                    <Applications />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/topup-manager" 
+                element={
+                  <ProtectedRoute permission="topup_approval">
+                    <TopupManager />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/employees" 
+                element={
+                  <ProtectedRoute permission="manage_users">
+                    <Employees />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/activity-logs" 
+                element={
+                  <ProtectedRoute permission="view_reports">
+                    <ActivityLogs />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/complaints" 
+                element={
+                  <ProtectedRoute permission="complaints_manage">
+                    <Complaints />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/complaints/:id" element={<ComplaintDetails />} />
-              <Route path="/admin/training-apps" element={<TrainingApps />} />
+              <Route 
+                path="/admin/training-apps" 
+                element={
+                  <ProtectedRoute permission="training_manage">
+                    <TrainingApps />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/admin/training-apps/:appId/videos" element={<TrainingVideos />} />
-              <Route path="/admin/countries" element={<CountryManagement />} />
-              <Route path="/admin/categories" element={<CategoryManagement />} />
-              <Route path="/admin/apps" element={<AppManagement />} />
-              <Route path="/admin/topup-settings" element={<TopupSettings />} />
-              <Route path="/bank-details" element={<BankDetails />} />
-              <Route path="/payment-requests" element={<PaymentRequests />} />
+              
+              <Route 
+                path="/admin/countries" 
+                element={
+                  <ProtectedRoute permission="content_manage">
+                    <CountryManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/categories" 
+                element={
+                  <ProtectedRoute permission="content_manage">
+                    <CategoryManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/apps" 
+                element={
+                  <ProtectedRoute permission="content_manage">
+                    <AppManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/topup-settings" 
+                element={
+                  <ProtectedRoute permission="content_manage">
+                    <TopupSettings />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/bank-details" 
+                element={
+                  <ProtectedRoute permission="bank_manage">
+                    <BankDetails />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/payment-requests" 
+                element={
+                  <ProtectedRoute permission="withdrawal_manage">
+                    <PaymentRequests />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/payment-requests/history" element={<WithdrawalHistory />} />
-              <Route path="/admin/wallet" element={<AdminWallet />} />
-              <Route path="/salary-management" element={<SalaryManagement />} />
+              <Route 
+                path="/admin/wallet" 
+                element={
+                  <ProtectedRoute>
+                    <AdminWallet />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/salary-management" 
+                element={
+                  <ProtectedRoute>
+                    <SalaryManagement />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/users" element={<Users />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Layout>
         ) : (
-          <Login onLogin={handleLogin} />
+          <Login onLogin={() => {}} />
         )}
       </Router>
     </ThemeProvider>

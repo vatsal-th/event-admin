@@ -41,8 +41,11 @@ import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
 import FilterDropdown from '../components/FilterDropdown';
 import toast from 'react-hot-toast';
+import { selectUser } from '../store/slices/authSlice';
+import AccessDenied from '../components/AccessDenied';
 
 export default function Applications() {
+    const user = useSelector(selectUser);
     const dispatch = useDispatch();
     const { applications: hostingApps, loading: hostingLoading, error: hostingError, success: hostingSuccess } = useSelector((state) => state.hostingApplications);
     const { applications: eventApps, loading: eventLoading, error: eventError, success: eventSuccess } = useSelector((state) => state.eventApplications);
@@ -134,7 +137,25 @@ export default function Applications() {
         setIsModalOpen(true);
     };
 
+    const canUpdateStatus = useMemo(() => {
+        if (!user) return false;
+        if (user.role?.toLowerCase() === 'admin') return true;
+        
+        const permissionMap = {
+            'event-hosting': 'hosting_approval',
+            'apply-event': 'event_approval',
+            'agency': 'agency_approval',
+            'influencer': 'influencer_approval'
+        };
+        
+        return user.permissions?.includes(permissionMap[activeTab]);
+    }, [user, activeTab]);
+
     const handleStatusUpdate = async (id, status) => {
+        if (!canUpdateStatus) {
+            toast.error('You do not have permission to update application status');
+            return;
+        }
         setIsProcessing(true);
         try {
             if (activeTab === 'event-hosting') {
@@ -944,21 +965,28 @@ export default function Applications() {
 
                         {/* Actions for Real API Data */}
                         {(activeTab === 'event-hosting' || activeTab === 'apply-event' || activeTab === 'agency' || activeTab === 'influencer') && selectedApplication.status.toLowerCase() === 'pending' && (
-                            <div className="flex gap-4 pt-6 border-t border-gray-100">
-                                <button
-                                    onClick={() => handleStatusUpdate(selectedApplication._id, 'Rejected')}
-                                    disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-2xl hover:bg-red-100 transition-all font-bold cursor-pointer flex items-center justify-center gap-2"
-                                >
-                                    <XCircle size={20} /> Reject
-                                </button>
-                                <button
-                                    onClick={() => handleStatusUpdate(selectedApplication._id, 'Approved')}
-                                    disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl hover:shadow-lg transition-all font-bold cursor-pointer flex items-center justify-center gap-2"
-                                >
-                                    {isProcessing ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={20} />} Approve
-                                </button>
+                            <div className="flex flex-col gap-3 pt-6 border-t border-gray-100">
+                                {!canUpdateStatus && (
+                                    <p className="text-sm font-bold text-amber-600 flex items-center gap-2 bg-amber-50 p-3 rounded-xl border border-amber-100">
+                                        <Info size={18} /> You do not have permission to approve/reject this application.
+                                    </p>
+                                )}
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => handleStatusUpdate(selectedApplication._id, 'Rejected')}
+                                        disabled={isProcessing || !canUpdateStatus}
+                                        className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-2xl hover:bg-red-100 transition-all font-bold cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <XCircle size={20} /> Reject
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusUpdate(selectedApplication._id, 'Approved')}
+                                        disabled={isProcessing || !canUpdateStatus}
+                                        className="flex-1 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl hover:shadow-lg transition-all font-bold cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isProcessing ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={20} />} Approve
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

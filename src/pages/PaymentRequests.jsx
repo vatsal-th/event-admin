@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { selectUser } from '../store/slices/authSlice';
 import { Eye, Loader2, User, Clock, Wallet, CheckCircle2, XCircle, Search, Filter, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import FilterDropdown from '../components/FilterDropdown';
@@ -14,7 +15,13 @@ import { useNavigate } from 'react-router-dom';
 export default function PaymentRequests() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const user = useSelector(selectUser);
     const { items, isLoading, isProcessing } = useSelector((state) => state.withdrawals);
+
+    const canManageWithdrawals = useMemo(() => {
+        if (!user) return false;
+        return user.role?.toLowerCase() === 'admin' || user.permissions?.includes('withdrawal_manage');
+    }, [user]);
 
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,6 +50,10 @@ export default function PaymentRequests() {
     };
 
     const handleReject = () => {
+        if (!canManageWithdrawals) {
+            toast.error('You do not have permission to reject withdrawals');
+            return;
+        }
         if (!showRejectInput) {
             setShowRejectInput(true);
             return;
@@ -67,6 +78,10 @@ export default function PaymentRequests() {
     };
 
     const handleApprove = () => {
+        if (!canManageWithdrawals) {
+            toast.error('You do not have permission to approve withdrawals');
+            return;
+        }
         dispatch(approveWithdrawalRequest(selectedRequest._id)).then((action) => {
             if (action.meta.requestStatus === 'fulfilled') {
                 setIsModalOpen(false);
@@ -363,31 +378,38 @@ export default function PaymentRequests() {
 
                         {/* Actions */}
                         {selectedRequest.status === 'pending' && (
-                            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                                <button
-                                    onClick={handleReject}
-                                    disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-2xl hover:bg-red-100 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer border border-red-100"
-                                >
-                                    <XCircle size={20} />
-                                    {showRejectInput ? 'Confirm Rejection' : 'Reject Withdrawal'}
-                                </button>
-                                {!showRejectInput && (
-                                    <button
-                                        onClick={handleApprove}
-                                        disabled={isProcessing}
-                                        className="flex-1 px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-2xl hover:shadow-lg hover:shadow-emerald-200 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                                    >
-                                        {isProcessing ? (
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 size={20} />
-                                                Approve Withdrawal
-                                            </>
-                                        )}
-                                    </button>
+                            <div className="flex flex-col gap-3 pt-4">
+                                {!canManageWithdrawals && (
+                                    <p className="text-sm font-bold text-amber-600 flex items-center gap-2 bg-amber-50 p-3 rounded-xl border border-amber-100">
+                                        <Clock size={18} /> You do not have permission to process this withdrawal.
+                                    </p>
                                 )}
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <button
+                                        onClick={handleReject}
+                                        disabled={isProcessing || !canManageWithdrawals}
+                                        className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-2xl hover:bg-red-100 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-not-allowed border border-red-100"
+                                    >
+                                        <XCircle size={20} />
+                                        {showRejectInput ? 'Confirm Rejection' : 'Reject Withdrawal'}
+                                    </button>
+                                    {!showRejectInput && (
+                                        <button
+                                            onClick={handleApprove}
+                                            disabled={isProcessing || !canManageWithdrawals}
+                                            className="flex-1 px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-2xl hover:shadow-lg hover:shadow-emerald-200 transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-not-allowed"
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <CheckCircle2 size={20} />
+                                                    Approve Withdrawal
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
 

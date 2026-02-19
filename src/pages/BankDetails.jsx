@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { selectUser } from '../store/slices/authSlice';
 import { Eye, CheckCircle2, XCircle, Loader2, Landmark, User, CreditCard, Globe, Tag, Search, Filter, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import FilterDropdown from '../components/FilterDropdown';
@@ -11,7 +12,13 @@ import toast from 'react-hot-toast';
 
 export default function BankDetails() {
     const dispatch = useDispatch();
+    const user = useSelector(selectUser);
     const { items, isLoading, isProcessing } = useSelector((state) => state.bankDetails);
+
+    const canManageBank = useMemo(() => {
+        if (!user) return false;
+        return user.role?.toLowerCase() === 'admin' || user.permissions?.includes('bank_manage');
+    }, [user]);
 
     const [selectedBank, setSelectedBank] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,6 +47,10 @@ export default function BankDetails() {
     };
 
     const handleVerifyBank = (status) => {
+        if (!canManageBank) {
+            toast.error('You do not have permission to verify bank accounts');
+            return;
+        }
         if (status === 'rejected') {
             if (!showRejectInput) {
                 setShowRejectInput(true);
@@ -383,39 +394,46 @@ export default function BankDetails() {
 
                         {/* Actions */}
                         {selectedBank.status === 'pending' && (
-                            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                                <button
-                                    onClick={() => handleVerifyBank('rejected')}
-                                    disabled={isProcessing}
-                                    className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-all font-semibold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                                >
-                                    <XCircle className="w-5 h-5" />
-                                    {showRejectInput ? 'Confirm Rejection' : 'Reject Account'}
-                                </button>
-                                {!showRejectInput && (
-                                    <button
-                                        onClick={() => handleVerifyBank('approved')}
-                                        disabled={isProcessing}
-                                        className="flex-1 px-6 py-3.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-semibold flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 disabled:opacity-50 cursor-pointer"
-                                    >
-                                        {isProcessing ? (
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-5 h-5" />
-                                                Approve Account
-                                            </>
-                                        )}
-                                    </button>
+                            <div className="flex flex-col gap-3 pt-4">
+                                {!canManageBank && (
+                                    <p className="text-sm font-bold text-amber-600 flex items-center gap-2 bg-amber-50 p-3 rounded-xl border border-amber-100 mb-2">
+                                        <Landmark size={18} /> You do not have permission to verify this account.
+                                    </p>
                                 )}
-                                {showRejectInput && (
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <button
-                                        onClick={() => setShowRejectInput(false)}
-                                        className="px-6 py-3.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-all font-semibold cursor-pointer"
+                                        onClick={() => handleVerifyBank('rejected')}
+                                        disabled={isProcessing || !canManageBank}
+                                        className="flex-1 px-6 py-3.5 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-all font-semibold flex items-center justify-center gap-2 disabled:opacity-50 cursor-not-allowed border border-red-100"
                                     >
-                                        Cancel
+                                        <XCircle className="w-5 h-5" />
+                                        {showRejectInput ? 'Confirm Rejection' : 'Reject Account'}
                                     </button>
-                                )}
+                                    {!showRejectInput && (
+                                        <button
+                                            onClick={() => handleVerifyBank('approved')}
+                                            disabled={isProcessing || !canManageBank}
+                                            className="flex-1 px-6 py-3.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-semibold flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 disabled:opacity-50 cursor-not-allowed"
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <CheckCircle2 className="w-5 h-5" />
+                                                    Approve Account
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                    {showRejectInput && (
+                                        <button
+                                            onClick={() => setShowRejectInput(false)}
+                                            className="px-6 py-3.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-all font-semibold cursor-pointer"
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

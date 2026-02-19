@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { selectUser } from '../store/slices/authSlice';
 import {
     Search,
     RefreshCw,
@@ -25,7 +26,13 @@ const Complaints = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
+    const user = useSelector(selectUser);
     const { complaints, loading, error } = useSelector((state) => state.complaints);
+
+    const canResolve = useMemo(() => {
+        if (!user) return false;
+        return user.role?.toLowerCase() === 'admin' || user.permissions?.includes('complaints_manage');
+    }, [user]);
     const [open, setOpen] = useState(false);
     const [selectedComplaint, setSelectedComplaint] = useState(null);
     const [resolutionNote, setResolutionNote] = useState('');
@@ -110,6 +117,10 @@ const Complaints = () => {
     };
 
     const handleResolve = async () => {
+        if (!canResolve) {
+            toast.error('You do not have permission to resolve complaints');
+            return;
+        }
         if (!resolutionNote.trim()) {
             toast.error('Please enter a resolution note');
             return;
@@ -440,7 +451,7 @@ const Complaints = () => {
                             </button>
                             <button
                                 onClick={handleResolve}
-                                disabled={loading || !resolutionNote.trim()}
+                                disabled={loading || !resolutionNote.trim() || !canResolve}
                                 className="flex-1 px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-xl font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {loading ? (

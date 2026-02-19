@@ -8,10 +8,12 @@ import { fetchEventApplications } from '../store/slices/eventApplicationSlice';
 import { fetchAgencyApplications } from '../store/slices/agencyApplicationSlice';
 import { fetchInfluencerApplications } from '../store/slices/influencerApplicationSlice';
 import { useNavigate } from 'react-router-dom';
+import { selectUser } from '../store/slices/authSlice';
 
 export default function Dashboard() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const user = useSelector(selectUser);
     const { stats: withdrawalStats } = useSelector((state) => state.withdrawals);
     const { applications: hostingApps } = useSelector((state) => state.hostingApplications);
     const { applications: eventApps } = useSelector((state) => state.eventApplications);
@@ -98,24 +100,30 @@ export default function Dashboard() {
             <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button 
-                        onClick={() => navigate('/applications')}
-                        className="px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer"
-                    >
-                        Review Pending Applications
-                    </button>
-                    <button 
-                        onClick={() => navigate('/payment-requests')}
-                        className="px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm cursor-pointer"
-                    >
-                        Process Payments
-                    </button>
-                    <button 
-                        onClick={() => navigate('/users')}
-                        className="px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm cursor-pointer"
-                    >
-                        View All Users
-                    </button>
+                    {(user?.role?.toLowerCase() === 'admin' || user?.permissions?.some(p => ['hosting_approval', 'event_approval', 'agency_approval', 'influencer_approval'].includes(p))) && (
+                        <button 
+                            onClick={() => navigate('/applications')}
+                            className="px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer"
+                        >
+                            Review Pending Applications
+                        </button>
+                    )}
+                    {(user?.role?.toLowerCase() === 'admin' || user?.permissions?.includes('withdrawal_manage')) && (
+                        <button 
+                            onClick={() => navigate('/payment-requests')}
+                            className="px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm cursor-pointer"
+                        >
+                            Process Payments
+                        </button>
+                    )}
+                    {(user?.role?.toLowerCase() === 'admin' || user?.permissions?.includes('manage_users')) && (
+                        <button 
+                            onClick={() => navigate('/employees')}
+                            className="px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm cursor-pointer"
+                        >
+                            Manage Employees
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

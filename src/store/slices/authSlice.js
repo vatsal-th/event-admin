@@ -20,6 +20,8 @@ export const adminLogin = createAsyncThunk(
             // Store token and user in localStorage
             if (data.token) {
                 localStorage.setItem('token', data.token);
+                const { token, ...user } = data;
+                localStorage.setItem('user', JSON.stringify(user));
             }
 
             return data;
@@ -39,6 +41,7 @@ export const logoutUser = createAsyncThunk(
 
             // Clear localStorage
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
 
             return null;
         } catch (error) {
@@ -73,6 +76,7 @@ const authSlice = createSlice({
 
             // Clear localStorage
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
         },
     },
     extraReducers: (builder) => {
@@ -85,8 +89,10 @@ const authSlice = createSlice({
             .addCase(adminLogin.fulfilled, (state, action) => {
                 state.loading = false;
                 state.isAuthenticated = true;
-                state.user = action.payload.user;
-                state.token = action.payload.token;
+                // De-structure token and user from the flat response
+                const { token, ...user } = action.payload;
+                state.user = user;
+                state.token = token;
                 state.error = null;
             })
             .addCase(adminLogin.rejected, (state, action) => {

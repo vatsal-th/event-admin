@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { selectUser } from '../store/slices/authSlice';
 import {
     Search,
     RefreshCw,
@@ -28,7 +29,13 @@ const TrainingApps = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
+    const user = useSelector(selectUser);
     const { apps, loading, error } = useSelector((state) => state.trainingApps);
+
+    const canManageTraining = useMemo(() => {
+        if (!user) return false;
+        return user.role?.toLowerCase() === 'admin' || user.permissions?.includes('training_manage');
+    }, [user]);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [modalOpen, setModalOpen] = useState(false);
@@ -84,16 +91,28 @@ const TrainingApps = () => {
     );
 
     const handleAddNew = () => {
+        if (!canManageTraining) {
+            toast.error('You do not have permission to manage training apps');
+            return;
+        }
         setEditingApp(null);
         setModalOpen(true);
     };
 
     const handleEdit = (app) => {
+        if (!canManageTraining) {
+            toast.error('You do not have permission to manage training apps');
+            return;
+        }
         setEditingApp(app);
         setModalOpen(true);
     };
 
     const handleDelete = async (id) => {
+        if (!canManageTraining) {
+            toast.error('You do not have permission to manage training apps');
+            return;
+        }
         try {
             await dispatch(deleteTrainingApp(id)).unwrap();
             toast.success('Training app deleted successfully');
@@ -163,7 +182,8 @@ const TrainingApps = () => {
                     </div>
                     <button
                         onClick={handleAddNew}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-lg cursor-pointer whitespace-nowrap"
+                        disabled={!canManageTraining}
+                        className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-lg cursor-pointer whitespace-nowrap ${!canManageTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <Plus size={18} />
                         <span className="hidden sm:inline">Add New Training App</span>
@@ -292,14 +312,16 @@ const TrainingApps = () => {
                                             </button>
                                             <button
                                                 onClick={() => handleEdit(app)}
-                                                className="p-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                                                disabled={!canManageTraining}
+                                                className={`p-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer ${!canManageTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 title="Edit"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => setDeleteConfirm(app)}
-                                                className="p-2 border border-red-300 text-red-600 rounded-xl hover:bg-red-50 transition-colors cursor-pointer"
+                                                disabled={!canManageTraining}
+                                                className={`p-2 border border-red-300 text-red-600 rounded-xl hover:bg-red-50 transition-colors cursor-pointer ${!canManageTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 title="Delete"
                                             >
                                                 <Trash2 className="w-4 h-4" />

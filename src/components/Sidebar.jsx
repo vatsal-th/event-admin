@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { selectUser } from '../store/slices/authSlice';
 import {
     LayoutDashboard,
     FileText,
     CreditCard,
-    Users,
-    Settings,
     UserCheck,
     Activity,
     MessageSquare,
@@ -28,19 +28,33 @@ import {
 export default function Sidebar({ onLogout, onClose }) {
     const location = useLocation();
     const [isAdminOpen, setIsAdminOpen] = useState(false);
+    const user = useSelector(selectUser);
+
+    const hasPermission = (permission) => {
+        if (!user) return false;
+        if (user.role?.toLowerCase() === 'admin') return true;
+        if (!permission) return true;
+        return user.permissions?.includes(permission);
+    };
 
     const navItems = [
         { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/applications', icon: FileText, label: 'Applications' },
-        { path: '/topup-manager', icon: Zap, label: 'Top-Up Manager' },
-        { path: '/employees', icon: UserCheck, label: 'Employees' },
-        { path: '/activity-logs', icon: Activity, label: 'Activity Logs' },
-        { path: '/complaints', icon: MessageSquare, label: 'Complaints' },
-        { path: '/admin/training-apps', icon: GraduationCap, label: 'Training Apps' },
+        { 
+            path: '/applications', 
+            icon: FileText, 
+            label: 'Applications', 
+            permissions: ['hosting_approval', 'event_approval', 'agency_approval', 'influencer_approval'] 
+        },
+        { path: '/topup-manager', icon: Zap, label: 'Top-Up Manager', permission: 'topup_approval' },
+        { path: '/employees', icon: UserCheck, label: 'Employees', permission: 'manage_users' },
+        { path: '/activity-logs', icon: Activity, label: 'Activity Logs', permission: 'view_reports' },
+        { path: '/complaints', icon: MessageSquare, label: 'Complaints', permission: 'complaints_manage' },
+        { path: '/admin/training-apps', icon: GraduationCap, label: 'Training Apps', permission: 'training_manage' },
         {
             label: 'Master Management',
             icon: Library,
             isDropdown: true,
+            permission: 'content_manage',
             children: [
                 { path: '/admin/countries', icon: Globe, label: 'Countries' },
                 { path: '/admin/categories', icon: Tag, label: 'Categories' },
@@ -48,13 +62,27 @@ export default function Sidebar({ onLogout, onClose }) {
                 { path: '/admin/topup-settings', icon: QrCode, label: 'Top-up Settings' },
             ]
         },
-        { path: '/bank-details', icon: Landmark, label: 'Bank Verification' },
-        { path: '/payment-requests', icon: CreditCard, label: 'Withdrawal Requests' },
-        { path: '/admin/wallet', icon: Wallet, label: 'Admin Wallet' },
-        { path: '/salary-management', icon: Banknote, label: 'Salary Management' },
-        { path: '/users', icon: Users, label: 'Users' },
-        { path: '/settings', icon: Settings, label: 'Settings' }
+        { path: '/bank-details', icon: Landmark, label: 'Bank Verification', permission: 'bank_manage' },
+        { path: '/payment-requests', icon: CreditCard, label: 'Withdrawal Requests', permission: 'withdrawal_manage' },
+        { path: '/admin/wallet', icon: Wallet, label: 'Admin Wallet', role: 'admin' },
+        { path: '/salary-management', icon: Banknote, label: 'Salary Management', role: 'admin' },
     ];
+
+    const filteredNavItems = navItems.filter(item => {
+        const userRole = user?.role?.toLowerCase();
+        if (userRole === 'admin') return true;
+        if (item.role === 'admin' && userRole !== 'admin') return false;
+        
+        if (item.permissions) {
+            return item.permissions.some(p => user?.permissions?.includes(p));
+        }
+        
+        if (item.permission) {
+            return user?.permissions?.includes(item.permission);
+        }
+        
+        return true;
+    });
 
     // Auto-expand dropdown if a child route is active
     useEffect(() => {
@@ -89,7 +117,7 @@ export default function Sidebar({ onLogout, onClose }) {
 
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                {navItems.map((item, index) => {
+                {filteredNavItems.map((item, index) => {
                     const Icon = item.icon;
 
                     if (item.isDropdown) {
@@ -165,8 +193,8 @@ export default function Sidebar({ onLogout, onClose }) {
                         A
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
-                        <p className="text-xs text-gray-500 truncate">admin@event.com</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{user?.fullName || 'Admin User'}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.email || 'admin@event.com'}</p>
                     </div>
                 </div>
                 <button
