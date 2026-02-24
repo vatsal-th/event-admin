@@ -166,6 +166,7 @@ export default function Employees() {
             'content_manage': 'Content Management',
             'bank_manage': 'Bank Management',
             'withdrawal_manage': 'Withdrawal Management',
+            'recharge_approval': 'Recharge Approval',
             'manage_users': 'Employee Management',
             'view_reports': 'View Reports'
         };
@@ -494,6 +495,7 @@ function AddEmployeeModal({ isOpen, onClose, onSubmit, isLoading }) {
         { id: 'content_manage', label: 'Countries, Categories, QR' },
         { id: 'bank_manage', label: 'Bank Verification' },
         { id: 'withdrawal_manage', label: 'Withdrawal Management' },
+        { id: 'recharge_approval', label: 'Recharge Approval' },
         { id: 'manage_users', label: 'Employee Management' },
         { id: 'view_reports', label: 'View Reports' }
     ];
@@ -654,6 +656,7 @@ function ViewEmployeeModal({ isOpen, onClose, employee }) {
             'content_manage': 'Content Management',
             'bank_manage': 'Bank Management',
             'withdrawal_manage': 'Withdrawal Management',
+            'recharge_approval': 'Recharge Approval',
             'manage_users': 'Employee Management',
             'view_reports': 'View Reports'
         };
@@ -777,6 +780,7 @@ function EditEmployeeModal({ isOpen, onClose, onSubmit, employee, isLoading }) {
         { id: 'content_manage', label: 'Countries, Categories, QR' },
         { id: 'bank_manage', label: 'Bank Verification' },
         { id: 'withdrawal_manage', label: 'Withdrawal Management' },
+        { id: 'recharge_approval', label: 'Recharge Approval' },
         { id: 'manage_users', label: 'Employee Management' },
         { id: 'view_reports', label: 'View Reports' }
     ];

@@ -22,7 +22,8 @@ import {
     Wallet,
     Banknote,
     QrCode,
-    Zap
+    Zap,
+    User
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, onClose }) {
@@ -39,6 +40,7 @@ export default function Sidebar({ onLogout, onClose }) {
 
     const navItems = [
         { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/users', icon: User, label: 'Users', role: 'admin' },
         { 
             path: '/applications', 
             icon: FileText, 
@@ -65,6 +67,7 @@ export default function Sidebar({ onLogout, onClose }) {
         { path: '/bank-details', icon: Landmark, label: 'Bank Verification', permission: 'bank_manage' },
         { path: '/payment-requests', icon: CreditCard, label: 'Withdrawal Requests', permission: 'withdrawal_manage' },
         { path: '/admin/wallet', icon: Wallet, label: 'Admin Wallet', role: 'admin' },
+        { path: '/admin/recharge-requests', icon: Zap, label: 'Recharge Requests', permission: 'recharge_approval' },
         { path: '/salary-management', icon: Banknote, label: 'Salary Management', role: 'admin' },
     ];
 

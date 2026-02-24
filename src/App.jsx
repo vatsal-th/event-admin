@@ -25,6 +25,8 @@ import AdminWallet from './pages/AdminWallet';
 import SalaryManagement from './pages/SalaryManagement';
 import TopupSettings from './pages/TopupSettings';
 import TopupManager from './pages/TopupManager';
+import RechargeRequests from './pages/RechargeRequests';
+import RechargeHistory from './pages/RechargeHistory';
 import Login from './pages/Login';
 import { setCredentials, logout, selectIsAuthenticated, selectUser } from './store/slices/authSlice';
 import './App.css';
@@ -200,6 +202,22 @@ function App() {
                 } 
               />
               <Route 
+                path="/admin/recharge-requests" 
+                element={
+                  <ProtectedRoute permission="recharge_approval">
+                    <RechargeRequests />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/recharge-history" 
+                element={
+                  <ProtectedRoute permission="recharge_approval">
+                    <RechargeHistory />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/salary-management" 
                 element={
                   <ProtectedRoute>
@@ -207,7 +225,14 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route path="/users" element={<Users />} />
+              <Route 
+                path="/users" 
+                element={
+                  <ProtectedRoute>
+                    <Users />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
