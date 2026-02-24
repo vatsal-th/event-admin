@@ -41,6 +41,11 @@ export default function Users() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    // Filter States
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [pointsFilter, setPointsFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('newest');
+
     // Modal States
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [isFreezeModalOpen, setIsFreezeModalOpen] = useState(false);
@@ -65,13 +70,44 @@ export default function Users() {
     }, [error, dispatch]);
 
     const filteredUsers = useMemo(() => {
-        const term = searchTerm.toLowerCase();
-        return users.filter(user => 
-            user.fullName?.toLowerCase().includes(term) ||
-            user.email?.toLowerCase().includes(term) ||
-            user._id?.includes(term)
-        );
-    }, [users, searchTerm]);
+        let result = [...users];
+
+        // Search Filter
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter(user => 
+                user.fullName?.toLowerCase().includes(term) ||
+                user.email?.toLowerCase().includes(term) ||
+                user._id?.includes(term)
+            );
+        }
+
+        // Status Filter
+        if (statusFilter !== 'all') {
+            const isFrozen = statusFilter === 'frozen';
+            result = result.filter(user => user.isWalletFrozen === isFrozen);
+        }
+
+        // Points Filter
+        if (pointsFilter !== 'all') {
+            if (pointsFilter === 'has_points') {
+                result = result.filter(user => (user.points || 0) > 0);
+            } else if (pointsFilter === 'zero_points') {
+                result = result.filter(user => (user.points || 0) === 0);
+            }
+        }
+
+        // Sorting
+        result.sort((a, b) => {
+            if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+            if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+            if (sortBy === 'points_high') return (b.points || 0) - (a.points || 0);
+            if (sortBy === 'points_low') return (a.points || 0) - (b.points || 0);
+            return 0;
+        });
+
+        return result;
+    }, [users, searchTerm, statusFilter, pointsFilter, sortBy]);
 
     const paginatedUsers = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -195,34 +231,72 @@ export default function Users() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
+                <div className="flex-1">
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">User Management</h1>
-                    <p className="text-gray-500 mt-1">Monitor users, freeze accounts and adjust balances</p>
+                    <div className="flex items-center gap-4 mt-1">
+                        <p className="text-gray-500">Monitor users, freeze accounts and adjust balances</p>
+                        <span className="h-1 w-1 rounded-full bg-gray-300"></span>
+                        <p className="text-sm font-bold text-blue-600">
+                             {filteredUsers.length} of {users.length} Users
+                        </p>
+                    </div>
                 </div>
-                <button 
-                    onClick={() => dispatch(fetchAllUsers())}
-                    className="p-3 bg-white border border-gray-200 rounded-2xl text-gray-600 hover:bg-gray-50 transition-all hover:shadow-sm cursor-pointer"
-                >
-                    <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                </button>
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                <div className="relative max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Search users by name, email or ID..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
-                    />
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search users by name, email or ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        {/* Status Filter */}
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 outline-none font-bold text-sm text-gray-700 cursor-pointer"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active Only</option>
+                            <option value="frozen">Frozen Only</option>
+                        </select>
+
+                        {/* Points Filter */}
+                        <select
+                            value={pointsFilter}
+                            onChange={(e) => setPointsFilter(e.target.value)}
+                            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 outline-none font-bold text-sm text-gray-700 cursor-pointer"
+                        >
+                            <option value="all">All Points</option>
+                            <option value="has_points">With Balance</option>
+                            <option value="zero_points">Zero Balance</option>
+                        </select>
+
+                        {/* Sorting */}
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 outline-none font-bold text-sm text-gray-700 cursor-pointer"
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="points_high">Highest Points</option>
+                            <option value="points_low">Lowest Points</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100">
                 <Table 
                     columns={columns}
                     data={paginatedUsers}

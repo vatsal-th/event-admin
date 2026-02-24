@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Users, Search, Edit, Trash2, Eye, RefreshCw } from 'lucide-react';
 import Table from '../components/Table';
 import Modal from '../components/Modal';
 import Badge from '../components/Badge';
@@ -15,8 +15,9 @@ import {
 } from '@mui/material';
 
 export default function Employees() {
-    const [activeTab, setActiveTab] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [permissionFilter, setPermissionFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('newest');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -66,21 +67,25 @@ export default function Employees() {
         }
     };
 
-    const tabs = [
-        { id: 'all', label: 'All Employees', count: employees.length },
-        { id: 'active', label: 'Active', count: employees.filter(e => e.status === 'active').length },
-        { id: 'inactive', label: 'Inactive', count: employees.filter(e => e.status === 'inactive').length }
-    ];
+
 
     const filteredEmployees = employees.filter(employee => {
-        const matchesTab = activeTab === 'all' ||
-                          (activeTab === 'active' && employee.status === 'active') ||
-                          (activeTab === 'inactive' && employee.status === 'inactive');
-
+        // Search Filter
         const matchesSearch = employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                              employee.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-        return matchesTab && matchesSearch;
+        // Permission Filter
+        const matchesPermission = permissionFilter === 'all' || 
+                                 (employee.role?.toLowerCase() === 'admin') || 
+                                 (employee.permissions && employee.permissions.includes(permissionFilter));
+
+        return matchesSearch && matchesPermission;
+    }).sort((a, b) => {
+        if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+        if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+        if (sortBy === 'name_asc') return a.fullName.localeCompare(b.fullName);
+        if (sortBy === 'name_desc') return b.fullName.localeCompare(a.fullName);
+        return 0;
     });
 
     const paginatedEmployees = filteredEmployees.slice(
@@ -90,7 +95,7 @@ export default function Employees() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, activeTab]);
+    }, [searchTerm, permissionFilter, sortBy]);
 
     const handleViewEmployee = (employee) => {
         setSelectedEmployee(employee);
@@ -154,23 +159,25 @@ export default function Employees() {
         }
     };
 
+    const availablePermissions = [
+        { id: 'hosting_approval', label: 'Hosting Approval' },
+        { id: 'event_approval', label: 'Event Approval' },
+        { id: 'agency_approval', label: 'Agency Approval' },
+        { id: 'influencer_approval', label: 'Influencer Approval' },
+        { id: 'topup_approval', label: 'Top Up Update' },
+        { id: 'complaints_manage', label: 'Complaints' },
+        { id: 'training_manage', label: 'Training' },
+        { id: 'content_manage', label: 'Content' },
+        { id: 'bank_manage', label: 'Bank Verification' },
+        { id: 'withdrawal_manage', label: 'Withdrawals' },
+        { id: 'recharge_approval', label: 'Recharge' },
+        { id: 'manage_users', label: 'Employees' },
+        { id: 'view_reports', label: 'Reports' }
+    ];
+
     const getPermissionLabel = (permission) => {
-        const labels = {
-            'hosting_approval': 'Hosting Approval',
-            'event_approval': 'Event Approval',
-            'agency_approval': 'Agency Approval',
-            'influencer_approval': 'Influencer Approval',
-            'topup_approval': 'Top Up Status Update',
-            'complaints_manage': 'Complaints Management',
-            'training_manage': 'Training Manage',
-            'content_manage': 'Content Management',
-            'bank_manage': 'Bank Management',
-            'withdrawal_manage': 'Withdrawal Management',
-            'recharge_approval': 'Recharge Approval',
-            'manage_users': 'Employee Management',
-            'view_reports': 'View Reports'
-        };
-        return labels[permission] || permission;
+        const found = availablePermissions.find(p => p.id === permission);
+        return found ? found.label : permission;
     };
 
     const columns = [
@@ -334,37 +341,61 @@ export default function Employees() {
                 </div>
             </div>
 
-            {/* Tabs and Search */}
-            <div className="mb-6">
-                <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                    <div className="border-b border-gray-200 w-full lg:w-auto">
-                        <div className="flex gap-4 lg:gap-8 overflow-x-auto">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`pb-3 lg:pb-4 px-2 font-medium text-sm transition-all duration-200 border-b-2 cursor-pointer whitespace-nowrap ${
-                                        activeTab === tab.id
-                                            ? 'border-blue-600 text-blue-600'
-                                            : 'border-transparent text-gray-600 hover:text-gray-900'
-                                    }`}
-                                >
-                                    {tab.label} ({tab.count})
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+            {/* Header and Search */}
+            <div className="mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div>
+                    <h2 className="text-lg lg:text-xl font-bold text-gray-900">
+                        All Employees ({employees.length})
+                    </h2>
+                </div>
 
-                    <div className="relative w-full lg:w-80">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative w-full lg:w-64">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input
                             type="text"
-                            placeholder="Search employees..."
+                            placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm lg:text-base"
+                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none text-sm"
                         />
                     </div>
+
+
+
+                    <select
+                        value={permissionFilter}
+                        onChange={(e) => setPermissionFilter(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-100 outline-none font-medium text-xs text-gray-700 cursor-pointer"
+                    >
+                        <option value="all">All Permissions</option>
+                        {availablePermissions.map(p => (
+                            <option key={p.id} value={p.id}>{p.label}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-100 outline-none font-medium text-xs text-gray-700 cursor-pointer"
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                    </select>
+
+                    <button
+                        onClick={() => {
+                            setSearchTerm('');
+                            setPermissionFilter('all');
+                            setSortBy('newest');
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                        title="Clear Filters"
+                    >
+                        <RefreshCw size={18} />
+                    </button>
                 </div>
             </div>
 
@@ -401,12 +432,15 @@ export default function Employees() {
                             <Users className="w-8 h-8 text-gray-400" />
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No Employees Found</h3>
-                        <p className="text-gray-600">
-                            {searchTerm || activeTab !== 'all'
-                                ? 'Try adjusting your search or filter criteria.'
-                                : 'No employees have been added yet. Click "Add Employee" to get started.'}
-                        </p>
-                        {activeTab === 'all' && !searchTerm && (
+                        {searchTerm && (
+                             <button
+                                onClick={() => setSearchTerm('')}
+                                className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                            >
+                                Clear Search
+                            </button>
+                        )}
+                        {!searchTerm && (
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"

@@ -4,7 +4,7 @@ export default function Table({ columns, data, onRowAction }) {
             {/* Mobile Card View */}
             <div className="block md:hidden space-y-4">
                 {!Array.isArray(data) || data.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
                         No data available
                     </div>
                 ) : (
@@ -28,7 +28,7 @@ export default function Table({ columns, data, onRowAction }) {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="hidden md:block overflow-x-auto bg-white rounded-xl border border-gray-200">
                 <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>

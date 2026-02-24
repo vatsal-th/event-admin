@@ -79,13 +79,6 @@ export default function Dashboard() {
                         System metrics and performance summary
                     </p>
                 </div>
-                <button 
-                    onClick={refreshData}
-                    className="group bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 font-medium cursor-pointer active:scale-95"
-                >
-                    <RefreshCw className={`w-4 h-4 group-hover:rotate-180 transition-transform duration-500 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh Stats
-                </button>
             </div>
 
             {/* Quick Metrics */}
