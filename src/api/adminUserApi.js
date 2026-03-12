@@ -41,10 +41,15 @@ export const adminUserApi = {
     return response.data;
   },
   /**
-   * Get Dashboard Statistics
+   * Toggle user active/inactive status
+   * @param {string} userId - The user ID
+   * @param {boolean} isActive - Status to set
    */
-  getDashboardStats: async () => {
-    const response = await axiosInstance.get("/api/admin/dashboard/stats");
+  toggleUserStatus: async (userId, isActive) => {
+    const response = await axiosInstance.put(
+      `/api/admin/users/${userId}/status`,
+      { isActive },
+    );
     return response.data;
   },
 };

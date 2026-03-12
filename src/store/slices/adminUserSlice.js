@@ -1,6 +1,20 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import adminUserApi from "../../api/adminUserApi";
 
+export const toggleUserStatusAction = createAsyncThunk(
+  "adminUsers/toggleStatus",
+  async ({ userId, isActive }, { rejectWithValue }) => {
+    try {
+      const data = await adminUserApi.toggleUserStatus(userId, isActive);
+      return { userId, isActive, data: data.data || data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update user status",
+      );
+    }
+  },
+);
+
 export const fetchAllUsers = createAsyncThunk(
   "adminUsers/fetchAll",
   async (_, { rejectWithValue }) => {
@@ -92,6 +106,23 @@ const adminUserSlice = createSlice({
         }
       })
       .addCase(toggleFreezeWalletAction.rejected, (state, action) => {
+        state.processing = false;
+        state.error = action.payload;
+      })
+      // Toggle Status
+      .addCase(toggleUserStatusAction.pending, (state) => {
+        state.processing = true;
+      })
+      .addCase(toggleUserStatusAction.fulfilled, (state, action) => {
+        state.processing = false;
+        const index = state.users.findIndex(
+          (u) => u._id === action.payload.userId,
+        );
+        if (index !== -1) {
+          state.users[index].isActive = action.payload.isActive;
+        }
+      })
+      .addCase(toggleUserStatusAction.rejected, (state, action) => {
         state.processing = false;
         state.error = action.payload;
       })

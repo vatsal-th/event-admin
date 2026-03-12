@@ -27,6 +27,7 @@ import TopupSettings from './pages/TopupSettings';
 import TopupManager from './pages/TopupManager';
 import RechargeRequests from './pages/RechargeRequests';
 import RechargeHistory from './pages/RechargeHistory';
+import NotificationManagement from './pages/NotificationManagement';
 import Login from './pages/Login';
 import { setCredentials, logout, selectIsAuthenticated, selectUser } from './store/slices/authSlice';
 import './App.css';
@@ -230,6 +231,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Users />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/notifications" 
+                element={
+                  <ProtectedRoute>
+                    <NotificationManagement />
                   </ProtectedRoute>
                 } 
               />
