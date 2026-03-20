@@ -52,6 +52,14 @@ export const adminUserApi = {
     );
     return response.data;
   },
+  /**
+   * Get user detail by ID
+   * @param {string} userId - The user ID
+   */
+  getUserById: async (userId) => {
+    const response = await axiosInstance.get(`/api/admin/users/${userId}`);
+    return response.data;
+  },
 };
 
 export default adminUserApi;

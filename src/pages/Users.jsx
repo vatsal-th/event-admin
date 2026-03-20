@@ -20,7 +20,14 @@ import {
     Lock,
     Unlock,
     MinusCircle,
-    PlusCircle
+    PlusCircle,
+    Eye,
+    Download,
+    Calendar,
+    Clock,
+    UserCheck,
+    Globe,
+    CreditCard
 } from 'lucide-react';
 import { 
     fetchAllUsers, 
@@ -29,6 +36,7 @@ import {
     toggleUserStatusAction,
     clearAdminUserError 
 } from '../store/slices/adminUserSlice';
+import { adminUserApi } from '../api/adminUserApi';
 import Table from '../components/Table';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
@@ -51,6 +59,9 @@ export default function Users() {
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [isFreezeModalOpen, setIsFreezeModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewingUser, setViewingUser] = useState(null);
+    const [isFetchingUser, setIsFetchingUser] = useState(false);
 
     // Adjust Balance Form State
     const [adjustData, setAdjustData] = useState({
@@ -170,6 +181,67 @@ export default function Users() {
             // Error handled by useEffect
         }
     };
+    const handleViewUser = async (user) => {
+        setSelectedUser(user);
+        setIsViewModalOpen(true);
+        setIsFetchingUser(true);
+        try {
+            const response = await adminUserApi.getUserById(user._id);
+            if (response.success) {
+                setViewingUser(response.data);
+            } else {
+                toast.error(response.message || 'Failed to fetch user details');
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Something went wrong');
+        } finally {
+            setIsFetchingUser(false);
+        }
+    };
+
+    const handleExportUser = (userData) => {
+        if (!userData) return;
+        
+        const headers = [
+            "User ID", "Full Name", "Email", "Gender", "Role", "Points", "Invite ID", 
+            "Wallet Frozen", "Account Active", "Created At", "Updated At", 
+            "Last Notification View", "Last Service View", "Last System View"
+        ];
+
+        const row = [
+            userData._id,
+            userData.fullName,
+            userData.email,
+            userData.gender || "N/A",
+            userData.role,
+            userData.points || 0,
+            userData.inviteId || "N/A",
+            userData.isWalletFrozen ? "Yes" : "No",
+            userData.isActive ? "Yes" : "No",
+            userData.createdAt ? new Date(userData.createdAt).toLocaleString() : "N/A",
+            userData.updatedAt ? new Date(userData.updatedAt).toLocaleString() : "N/A",
+            userData.lastNotificationViewedAt ? new Date(userData.lastNotificationViewedAt).toLocaleString() : "Never",
+            userData.lastServiceViewedAt ? new Date(userData.lastServiceViewedAt).toLocaleString() : "Never",
+            userData.lastSystemViewedAt ? new Date(userData.lastSystemViewedAt).toLocaleString() : "Never"
+        ];
+
+        // Escape values and join with commas
+        const csvContent = [
+            headers.join(","),
+            row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `user_${userData.fullName.replace(/\s+/g, '_')}_details.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('User details exported as CSV successfully');
+    };
 
     const columns = [
         {
@@ -235,6 +307,13 @@ export default function Users() {
                         title={row.isWalletFrozen ? "Unfreeze Wallet" : "Freeze Wallet"}
                     >
                         {row.isWalletFrozen ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+                    </button>
+                    <button
+                        onClick={() => handleViewUser(row)}
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer group relative"
+                        title="View Details"
+                    >
+                        <Eye size={18} />
                     </button>
                 </div>
             )
@@ -483,6 +562,147 @@ export default function Users() {
                             {selectedUser?.isWalletFrozen ? "Unfreeze Now" : "Freeze Now"}
                         </button>
                     </div>
+                </div>
+            </Modal>
+
+            {/* User Detail Modal */}
+            <Modal
+                isOpen={isViewModalOpen}
+                onClose={() => {
+                    setIsViewModalOpen(false);
+                    setViewingUser(null);
+                }}
+                title="User Detailed Information"
+                size="lg"
+            >
+                <div className="space-y-6">
+                    {isFetchingUser ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+                            <p className="text-gray-500 font-bold">Fetching user details...</p>
+                        </div>
+                    ) : viewingUser ? (
+                        <>
+                            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl">
+                                        {viewingUser.fullName?.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900">{viewingUser.fullName}</h3>
+                                        <p className="text-gray-500 font-medium">{viewingUser.email}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleExportUser(viewingUser)}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg cursor-pointer"
+                                >
+                                    <Download size={18} />
+                                    Export CSV
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Basic Info */}
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <User size={14} /> Basic Information
+                                    </h4>
+                                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-500 font-medium">User ID</span>
+                                            <span className="text-sm font-bold text-gray-900 font-mono">{viewingUser._id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-500 font-medium">Invite ID</span>
+                                            <span className="text-sm font-bold text-gray-900">{viewingUser.inviteId || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-500 font-medium">Gender</span>
+                                            <span className="text-sm font-bold text-gray-900 capitalize">{viewingUser.gender || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-gray-500 font-medium">Role</span>
+                                            <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase">{viewingUser.role}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Account Status */}
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Settings2 size={14} /> Account Status
+                                    </h4>
+                                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-500 font-medium">Account Status</span>
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                                viewingUser.isActive 
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                                                : 'bg-red-50 text-red-700 border-red-100'
+                                            }`}>
+                                                {viewingUser.isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-500 font-medium">Wallet Status</span>
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                                viewingUser.isWalletFrozen 
+                                                ? 'bg-red-50 text-red-700 border-red-100' 
+                                                : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                            }`}>
+                                                {viewingUser.isWalletFrozen ? 'Frozen' : 'Normal'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-500 font-medium">Wallet Balance</span>
+                                            <div className="flex items-center gap-1.5 font-black text-gray-900">
+                                                <Zap size={14} className="text-amber-500 fill-amber-500" />
+                                                {viewingUser.points?.toLocaleString() || 0}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Activity Logs */}
+                                <div className="space-y-4 md:col-span-2">
+                                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Clock size={14} /> Activity & System Timestamps
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
+                                            <div className="flex justify-between">
+                                                <span className="text-sm text-gray-500 font-medium flex items-center gap-2"><Eye size={12}/> Last Notification View</span>
+                                                <span className="text-sm font-bold text-gray-900">{viewingUser.lastNotificationViewedAt ? new Date(viewingUser.lastNotificationViewedAt).toLocaleString() : 'Never'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-sm text-gray-500 font-medium flex items-center gap-2"><Eye size={12}/> Last Service View</span>
+                                                <span className="text-sm font-bold text-gray-900">{viewingUser.lastServiceViewedAt ? new Date(viewingUser.lastServiceViewedAt).toLocaleString() : 'Never'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-sm text-gray-500 font-medium flex items-center gap-2"><Eye size={12}/> Last System View</span>
+                                                <span className="text-sm font-bold text-gray-900">{viewingUser.lastSystemViewedAt ? new Date(viewingUser.lastSystemViewedAt).toLocaleString() : 'Never'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
+                                            <div className="flex justify-between">
+                                                <span className="text-sm text-gray-500 font-medium flex items-center gap-2"><Calendar size={12}/> Created On</span>
+                                                <span className="text-sm font-bold text-gray-900">{viewingUser.createdAt ? new Date(viewingUser.createdAt).toLocaleString() : 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-sm text-gray-500 font-medium flex items-center gap-2"><RefreshCw size={12}/> Last Updated</span>
+                                                <span className="text-sm font-bold text-gray-900">{viewingUser.updatedAt ? new Date(viewingUser.updatedAt).toLocaleString() : 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-10">
+                            <p className="text-red-500 font-bold">Error loading user details.</p>
+                        </div>
+                    )}
                 </div>
             </Modal>
         </div>

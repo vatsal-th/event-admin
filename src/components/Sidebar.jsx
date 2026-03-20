@@ -70,7 +70,7 @@ export default function Sidebar({ onLogout, onClose }) {
         { path: '/admin/wallet', icon: Wallet, label: 'Admin Wallet', role: 'admin' },
         { path: '/admin/recharge-requests', icon: Zap, label: 'Recharge Requests', permission: 'recharge_approval' },
         { path: '/salary-management', icon: Banknote, label: 'Salary Management', role: 'admin' },
-        { path: '/notifications', icon: Bell, label: 'Notifications', role: 'admin' },
+        { path: '/notifications', icon: Bell, label: 'System Notifications', role: 'admin' },
     ];
 
     const filteredNavItems = navItems.filter(item => {

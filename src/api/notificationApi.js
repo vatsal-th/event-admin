@@ -25,6 +25,25 @@ const notificationApi = {
     getAdminNotificationHistory: async () => {
         const response = await axiosInstance.get('/api/notifications/admin/all');
         return response.data;
+    },
+
+    /**
+     * Update an existing notification
+     * @param {string} id - Notification ID
+     * @param {Object} data - Updated notification data
+     */
+    updateNotification: async (id, data) => {
+        const response = await axiosInstance.put(`/api/notifications/admin/${id}`, data);
+        return response.data;
+    },
+
+    /**
+     * Delete a notification
+     * @param {string} id - Notification ID
+     */
+    deleteNotification: async (id) => {
+        const response = await axiosInstance.delete(`/api/notifications/admin/${id}`);
+        return response.data;
     }
 };
 

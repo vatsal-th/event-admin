@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, User, Globe, Send, History, AlertCircle, CheckCircle2, Loader2, Search } from 'lucide-react';
+import { Bell, User, Globe, Send, History, AlertCircle, CheckCircle2, Loader2, Search, Edit, Trash2, X } from 'lucide-react';
 import notificationApi from '../api/notificationApi';
 import Pagination from '../components/Pagination';
 
@@ -22,6 +22,21 @@ const NotificationManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
 
+    // Edit Modal States
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingNotification, setEditingNotification] = useState(null);
+    const [editFormData, setEditFormData] = useState({
+        title: '',
+        message: '',
+        email: '',
+        type: 'General',
+        isGlobal: true
+    });
+
+    // Delete Modal States
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingNotificationId, setDeletingNotificationId] = useState(null);
+
     useEffect(() => {
         if (activeTab === 'history') {
             fetchHistory();
@@ -41,6 +56,20 @@ const NotificationManagement = () => {
             return () => clearTimeout(timer);
         }
     }, [status]);
+
+    // Handle scroll lock when modals are open
+    useEffect(() => {
+        if (isEditModalOpen || isDeleteModalOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+
+        // Cleanup on unmount
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isEditModalOpen, isDeleteModalOpen]);
 
     const fetchHistory = async () => {
         setHistoryLoading(true);
@@ -86,11 +115,70 @@ const NotificationManagement = () => {
 
             setStatus({ type: 'success', message: 'Notification sent successfully!' });
             setFormData({ title: '', message: '', email: '', isGlobal: true });
+            
+            // If in history tab, refresh
+            if (activeTab === 'history') {
+                fetchHistory();
+            }
         } catch (error) {
             console.error('Error sending notification:', error);
             setStatus({ 
                 type: 'error', 
                 message: error.response?.data?.message || error.message || 'Failed to send notification' 
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEditClick = (notification) => {
+        setEditingNotification(notification);
+        setEditFormData({
+            title: notification.title || '',
+            message: notification.message || '',
+            email: notification.userId?.email || notification.email || '',
+            type: notification.type || 'General',
+            isGlobal: notification.isGlobal
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await notificationApi.updateNotification(editingNotification._id, editFormData);
+            setStatus({ type: 'success', message: 'Notification updated successfully!' });
+            setIsEditModalOpen(false);
+            fetchHistory();
+        } catch (error) {
+            console.error('Error updating notification:', error);
+            setStatus({ 
+                type: 'error', 
+                message: error.response?.data?.message || 'Failed to update notification' 
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (id) => {
+        setDeletingNotificationId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        setLoading(true);
+        try {
+            await notificationApi.deleteNotification(deletingNotificationId);
+            setStatus({ type: 'success', message: 'Notification deleted successfully!' });
+            setIsDeleteModalOpen(false);
+            fetchHistory();
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            setStatus({ 
+                type: 'error', 
+                message: error.response?.data?.message || 'Failed to delete notification' 
             });
         } finally {
             setLoading(false);
@@ -275,6 +363,7 @@ const NotificationManagement = () => {
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Target</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Created</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -321,6 +410,24 @@ const NotificationManagement = () => {
                                             <td className="px-6 py-4 text-sm text-gray-500">
                                                 {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
                                             </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button 
+                                                        onClick={() => handleEditClick(item)}
+                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="Edit Notification"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDeleteClick(item._id)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="Delete Notification"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
@@ -340,6 +447,122 @@ const NotificationManagement = () => {
                         itemsPerPage={itemsPerPage}
                         onPageChange={setCurrentPage}
                     />
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-200">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <Edit className="text-blue-600" size={24} />
+                                Edit Notification
+                            </h2>
+                            <button 
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-all cursor-pointer"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Title</label>
+                                <input
+                                    type="text"
+                                    value={editFormData.title}
+                                    onChange={(e) => setEditFormData({...editFormData, title: e.target.value})}
+                                    required
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                />
+                            </div>
+
+                            {!editFormData.isGlobal && (
+                                <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                                    <label className="text-sm font-semibold text-gray-700">Target User Email</label>
+                                    <input
+                                        type="email"
+                                        value={editFormData.email}
+                                        onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                                        required={!editFormData.isGlobal}
+                                        placeholder="Enter user email..."
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Message</label>
+                                <textarea
+                                    value={editFormData.message}
+                                    onChange={(e) => setEditFormData({...editFormData, message: e.target.value})}
+                                    required
+                                    rows="4"
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                                ></textarea>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Visibility</label>
+                                <div className="flex items-center gap-2 h-[50px]">
+                                    <input
+                                        type="checkbox"
+                                        id="isGlobalEdit"
+                                        checked={editFormData.isGlobal}
+                                        onChange={(e) => setEditFormData({...editFormData, isGlobal: e.target.checked})}
+                                        className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300 transition-all cursor-pointer"
+                                    />
+                                    <label htmlFor="isGlobalEdit" className="text-sm font-medium text-gray-700 cursor-pointer">Global Notification</label>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="flex-1 px-6 py-3 border border-gray-200 text-gray-600 font-bold rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" size={20} /> : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200">
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Trash2 size={32} />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Are you sure?</h2>
+                            <p className="text-gray-500 mb-8">This action cannot be undone. This notification will be permanently deleted.</p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="flex-1 px-6 py-3 border border-gray-200 text-gray-600 font-bold rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    disabled={loading}
+                                    className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-lg shadow-red-200 transition-all disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" size={20} /> : 'Delete Now'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
