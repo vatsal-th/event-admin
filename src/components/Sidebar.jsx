@@ -24,7 +24,8 @@ import {
     QrCode,
     Zap,
     User,
-    Bell
+    Bell,
+    ShieldCheck
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, onClose }) {
@@ -71,6 +72,7 @@ export default function Sidebar({ onLogout, onClose }) {
         { path: '/admin/recharge-requests', icon: Zap, label: 'Recharge Requests', permission: 'recharge_approval' },
         { path: '/salary-management', icon: Banknote, label: 'Salary Management', role: 'admin' },
         { path: '/notifications', icon: Bell, label: 'System Notifications', role: 'admin' },
+        { path: '/admin/permissions', icon: ShieldCheck, label: 'Admin Permissions', role: 'admin' },
     ];
 
     const filteredNavItems = navItems.filter(item => {

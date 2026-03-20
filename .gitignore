@@ -9,13 +9,8 @@ build/
 out/
 
 # Environment variables
-.env
-.env.local
-.env.development
 .env.development.local
-.env.production
 .env.production.local
-.env.test
 .env.test.local
 
 # Logs
@@ -49,3 +44,4 @@ coverage/
 # Misc
 *.log
 *.lock
+config.bat
