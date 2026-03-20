@@ -28,6 +28,7 @@ import TopupManager from './pages/TopupManager';
 import RechargeRequests from './pages/RechargeRequests';
 import RechargeHistory from './pages/RechargeHistory';
 import NotificationManagement from './pages/NotificationManagement';
+import AdminPermissions from './pages/AdminPermissions';
 import Login from './pages/Login';
 import { setCredentials, logout, selectIsAuthenticated, selectUser } from './store/slices/authSlice';
 import './App.css';
@@ -239,6 +240,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <NotificationManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/permissions" 
+                element={
+                  <ProtectedRoute>
+                    <AdminPermissions />
                   </ProtectedRoute>
                 } 
               />
